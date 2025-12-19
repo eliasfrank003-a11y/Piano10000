@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Icon -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/sf-ultralight-filled/100/treble-clef.png">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/sf-ultralight-filled/100/treble-clef.png">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Piano Practice">
+    
+    <title>Piano Practice</title>
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        /* GLOBAL STYLES */
+        html { 
+            background-color: #f8fafc; /* slate-50 for light mode */
+            transition: background-color 0.3s ease;
+        }
+        html.dark { 
+            background-color: #0f172a; /* slate-900 for dark mode */
+        }
+        body { 
+            background-color: transparent; 
+            overscroll-behavior: none; 
+            overflow: hidden; 
+            width: 100%;
+            height: 100%;
+            position: fixed; 
+            inset: 0;
+        }
+        #root {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .safe-area-pt { padding-top: env(safe-area-inset-top); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-slate-900 font-sans selection:bg-indigo-200">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // =================================================================
+        // 🔥 PASTE YOUR FIREBASE CONFIG HERE TO ENABLE CLOUD SYNC 🔥
+        // =================================================================
+        const userFirebaseConfig = {
+            apiKey: "AIzaSyBtbs3d0ifYfTE2H0ly7-rix0wVhbdf25I",
+            authDomain: "piano10000-35804.firebaseapp.com",
+            projectId: "piano10000-35804",
+            storageBucket: "piano10000-35804.firebasestorage.app",
+            messagingSenderId: "1005611018408",
+            appId: "1:1005611018408:web:c067db2e119cc9f3a5fa9d",
+            measurementId: "G-63W95VNLK6"
+        };
+        // =================================================================
+
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- FIREBASE SETUP ---
+        let db = null;
+        let isFirebaseEnabled = false;
+
+        try {
+            // Check if user has pasted config OR if environment has config
+            const configToUse = (userFirebaseConfig && userFirebaseConfig.apiKey) 
+                ? userFirebaseConfig 
+                : (typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null);
+
+            if (configToUse) {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(configToUse);
+                }
+                db = firebase.firestore();
+                isFirebaseEnabled = true;
+                console.log("Firebase initialized (Firestore only)");
+            }
+        } catch (e) {
+            console.warn("Firebase Init Failed:", e);
+        }
+
+        // --- ICONS ---
+        const IconMusic = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>;
+        const IconPlus = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
+        const IconList = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
+        const IconClock = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
+        const IconTrash = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2v2"></path></svg>;
+        const IconMoon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>;
+        const IconSun = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>;
+        const IconPlay = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
+        const IconStop = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>;
+        const IconChevronDown = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>;
+        const IconStar = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
+        const IconRepeat = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>;
+        const IconRefresh = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
+        const IconCloud = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>;
+        const IconCheck = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
+
+        // --- DATA ---
+        const INITIAL_REPERTOIRE = [
+            { id: 26, title: "26. Bach: Invention No. 8", lastPlayed: 0, playCount: 0 },
+            { id: 25, title: "25. Bach: Invention No. 1", lastPlayed: 0, playCount: 0 },
+            { id: 24, title: "24. Heller: Prelude in C Sharp Minor", lastPlayed: 0, playCount: 0 },
+            { id: 23, title: "23. Schumann: Kinderszenen No. 1", lastPlayed: 0, playCount: 0 },
+            { id: 22, title: "22. Massenet: Mélodie", lastPlayed: 0, playCount: 0 },
+            { id: 21, title: "21. Heller: Étude No. 15", lastPlayed: 0, playCount: 0 },
+            { id: 20, title: "20. Agay: Blue Walz", lastPlayed: 0, playCount: 0 },
+            { id: 19, title: "19. Kabalevsky: Scherzo", lastPlayed: 0, playCount: 0 },
+            { id: 18, title: "18. Cimarosa: Allegro", lastPlayed: 0, playCount: 0 },
+            { id: 17, title: "17. Czerny: Op. 849 No. 1", lastPlayed: 0, playCount: 0 },
+            { id: 16, title: "16. Bach: Prelude in C", lastPlayed: 0, playCount: 0 },
+            { id: 15, title: "15. Cornick: In the Groove", lastPlayed: 0, playCount: 0 },
+            { id: 14, title: "14. Tan: Jester's Jig", lastPlayed: 0, playCount: 0 },
+            { id: 13, title: "13. Haydn: Minuet and Trio", lastPlayed: 0, playCount: 0 },
+            { id: 12, title: "12. Kuhlau: Op. 20 No. 1", lastPlayed: 0, playCount: 0 },
+            { id: 11, title: "11. Czerny: Op. 299 No. 7", lastPlayed: 0, playCount: 0 },
+            { id: 10, title: "10. Czerny: Op. 299 No. 6", lastPlayed: 0, playCount: 0 },
+            { id: 9,  title: "9. Clementi: Op. 36 No. 6", lastPlayed: 0, playCount: 0 },
+            { id: 8,  title: "8. Chopin: Op. 69 No. 1", lastPlayed: 0, playCount: 0 },
+            { id: 7,  title: "7. Czerny: Op. 740 No. 1", lastPlayed: 0, playCount: 0 },
+            { id: 6,  title: "6. Brahms: Op. 30 No. 9", lastPlayed: 0, playCount: 0 },
+            { id: 5,  title: "5. Hurwitz: Mia and Sebastian's Theme", lastPlayed: 0, playCount: 0 },
+            { id: 4,  title: "4. Ponce: Intermezzo No. 1", lastPlayed: 0, playCount: 0 },
+            { id: 3,  title: "3. Tiersen: La Valse d'Amélie", lastPlayed: 0, playCount: 0 },
+            { id: 2,  title: "2. Chopin: Waltz in A minor", lastPlayed: 0, playCount: 0 },
+            { id: 1,  title: "1. Tiersen: Copine d'un autre été", lastPlayed: 0, playCount: 0 },
+        ];
+
+        // --- 10K LOGIC HELPERS ---
+        const START_DATE = new Date("2024-02-01"); 
+
+        const LEGACY_MILESTONES = [
+            { hours: 900, date: new Date("2025-11-08"), avg: "1h 24m" },
+            { hours: 800, date: new Date("2025-08-18"), avg: "1h 25m" },
+            { hours: 700, date: new Date("2025-06-30"), avg: "1h 22m" },
+            { hours: 600, date: new Date("2025-04-30"), avg: "1h 20m" },
+            { hours: 500, date: new Date("2024-12-31"), avg: "1h 29m" },
+            { hours: 400, date: new Date("2024-11-13"), avg: "1h 24m" },
+        ];
+
+        function formatDecimalToHMS(decimalHours) {
+            const totalSeconds = Math.round(decimalHours * 3600);
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            return `${h}h ${m}m ${s}s`;
+        }
+
+        function calculateDaysAgo(date) {
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        }
+
+        function calculate10kStats(totalHours, totalMinutes) {
+            const now = new Date();
+            const timeDiff = now - START_DATE;
+            const daysPassed = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+            const totalPlayed = parseFloat(totalHours || 0) + (parseFloat(totalMinutes || 0) / 60);
+            if (daysPassed <= 0 || totalPlayed === 0) return null;
+            const avgHoursPerDay = totalPlayed / daysPassed;
+            const percentage = Math.min(100, (totalPlayed / 10000) * 100).toFixed(2);
+            const remainingHours = 10000 - totalPlayed;
+            const daysRemaining = remainingHours / avgHoursPerDay;
+            const finishDate = new Date();
+            finishDate.setDate(now.getDate() + daysRemaining);
+            const nextMilestone = (Math.floor(totalPlayed / 100) + 1) * 100;
+            const hoursToMilestone = nextMilestone - totalPlayed;
+            const daysToMilestone = Math.ceil(hoursToMilestone / avgHoursPerDay);
+            return { daysPassed, avgDisplay: formatDecimalToHMS(avgHoursPerDay), percentage, finishDate: finishDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), nextMilestone, daysToMilestone, totalPlayed };
+        }
+
+        // --- SUB-COMPONENTS (Moved outside App to fix focus issues) ---
+
+        const TenThousandView = ({ tenKData, setTenKData }) => {
+            const stats = calculate10kStats(tenKData.hours, tenKData.minutes);
+            return (
+                <div className="flex-1 flex flex-col p-6 overflow-y-auto w-full animate-in fade-in zoom-in duration-300 no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700 z-20 relative">
+                        <div className="flex justify-between items-center mb-4"><h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2></div>
+                        <div className="flex gap-4 items-center">
+                            <div className="flex-1"><label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Hours</label><input type="number" value={tenKData.hours} onChange={(e) => setTenKData({...tenKData, hours: e.target.value})} placeholder="0" className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 focus:border-indigo-500 outline-none text-slate-900 dark:text-white p-1"/></div>
+                            <div className="flex-1"><label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Minutes</label><input type="number" value={tenKData.minutes} onChange={(e) => setTenKData({...tenKData, minutes: e.target.value})} placeholder="0" className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 focus:border-indigo-500 outline-none text-slate-900 dark:text-white p-1"/></div>
+                        </div>
+                    </div>
+                    {stats ? (
+                        <>
+                            <div className="mb-4"><div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-2"><span>MASTERY</span><span>{stats.percentage}%</span></div><div className="h-6 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner relative"><div className="h-full bg-green-500 transition-all duration-1000 ease-out relative" style={{ width: `${stats.percentage}%` }}><div className="absolute inset-0 bg-white/20"></div></div></div><div className="flex justify-between mt-2 text-xs text-slate-400 font-mono"><span>Avg: {stats.avgDisplay}/day</span><span>Day {stats.daysPassed}</span></div></div>
+                            <div className="relative mt-6 pb-12">
+                                <div className="absolute left-8 top-4 bottom-10 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0"></div>
+                                <div className="relative z-10 mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-50 dark:ring-slate-900"></div><div className="border border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-3 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50"><div><div className="text-xs font-bold uppercase tracking-wider text-slate-400">Estimated Finish</div><div className="text-lg font-bold text-slate-700 dark:text-slate-300">{stats.finishDate}</div></div></div></div>
+                                <div className="relative z-10 mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-yellow-400 ring-4 ring-yellow-400/20 shadow-lg shadow-yellow-400/50"></div><div className="bg-gradient-to-r from-yellow-50 to-white dark:from-slate-800 dark:to-slate-800 border border-yellow-200 dark:border-yellow-900/30 rounded-xl p-4 shadow-sm"><div className="flex justify-between items-center"><div><div className="text-yellow-600 dark:text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><IconStar /> Next Goal</div><div className="text-xl font-bold text-slate-900 dark:text-white">{stats.nextMilestone} Hours</div></div><div className="text-right"><div className="text-2xl font-bold text-yellow-500">{stats.daysToMilestone}</div><div className="text-[10px] text-slate-400 uppercase font-bold">Days Left</div></div></div></div></div>
+                                <div className="relative z-10 mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-green-500 ring-4 ring-green-500/20 animate-pulse"></div><div className="bg-white dark:bg-slate-800 border border-green-200 dark:border-green-900/50 rounded-xl p-4 shadow-sm"><div className="flex justify-between items-center mb-1"><div className="text-green-600 dark:text-green-400 text-xs font-bold uppercase tracking-wider">Current</div><div className="text-xs text-slate-400">Today</div></div><div className="text-2xl font-bold text-slate-900 dark:text-white">{Math.floor(stats.totalPlayed)} <span className="text-sm font-normal text-slate-500">Hours</span></div></div></div>
+                                {LEGACY_MILESTONES.map((milestone, idx) => (<div key={idx} className="relative z-10 opacity-60 hover:opacity-100 transition-opacity mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div><div className="flex-1"><div className="flex justify-between items-baseline"><span className="text-lg font-bold text-slate-700 dark:text-slate-300">{milestone.hours} Hours</span><span className="text-xs text-slate-400">{milestone.avg}/day</span></div><div className="text-xs text-slate-400 mt-0.5">{calculateDaysAgo(milestone.date)} days ago</div></div></div>))}
+                                <div className="relative z-10 pl-16"><div className="absolute left-8 top-1/2 -translate-x-1/2 w-4 h-full bg-slate-50 dark:bg-slate-900 z-0"></div><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-900 dark:bg-white border-2 border-slate-50 dark:border-slate-900 z-10"></div><div className="flex-1"><div className="text-sm font-bold text-slate-900 dark:text-white">Journey Started</div><div className="text-xs text-slate-400">Feb 1, 2024</div></div></div>
+                            </div>
+                        </>
+                    ) : <div className="text-center text-slate-400 mt-10 p-6 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">Enter your total hours above to generate your timeline.</div>}
+                </div>
+            );
+        };
+
+        const RepetitionsView = ({ repState, setRepState }) => {
+            const { count, target, mode } = repState;
+            const updateCount = (newCount) => setRepState(prev => ({ ...prev, count: newCount }));
+            const toggleMode = (newMode) => setRepState(prev => ({ ...prev, mode: newMode, count: newMode === 'DOWN' ? (parseInt(prev.target) || 5) : 0 }));
+            const triggerConfetti = () => {
+                const duration = 3000, animationEnd = Date.now() + duration;
+                const randomInOut = (min, max) => Math.random() * (max - min) + min;
+                const frame = () => {
+                    if (animationEnd - Date.now() <= 0) return;
+                    confetti({ particleCount: 3, startVelocity: 0, ticks: 300, origin: { x: Math.random(), y: -0.1 }, gravity: randomInOut(0.5, 1.0), scalar: randomInOut(0.8, 1.2), drift: randomInOut(-0.4, 0.4), colors: ['#6366f1', '#a855f7', '#ec4899', '#3b82f6', '#14b8a6'] });
+                    requestAnimationFrame(frame);
+                };
+                frame();
+            };
+            const handleTap = () => { if (mode === 'UP') updateCount(count + 1); else { if (count === 1) triggerConfetti(); updateCount(count > 0 ? count - 1 : 0); } };
+            const handleReset = () => { if (mode === 'DOWN') updateCount(parseInt(target) || 5); else updateCount(0); };
+            const handleTargetChange = (e) => { const val = e.target.value; setRepState(prev => { const newState = { ...prev, target: val }; if (prev.mode === 'DOWN') newState.count = parseInt(val) || 0; return newState; }); };
+            return (
+                <div className="flex-1 flex flex-col p-6 animate-in fade-in zoom-in duration-300 h-full" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                    <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-xl mb-6 shrink-0"><button onClick={() => toggleMode('UP')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'UP' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Count Up</button><button onClick={() => toggleMode('DOWN')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'DOWN' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Count Down</button></div>
+                    {mode === 'DOWN' && <div className="flex items-center gap-3 mb-4 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shrink-0"><span className="text-sm font-bold text-slate-500">Start From:</span><input type="number" value={target} onChange={handleTargetChange} className="flex-1 bg-slate-100 dark:bg-slate-700 text-right font-bold text-slate-900 dark:text-white outline-none rounded-lg px-3 py-1 focus:ring-2 focus:ring-indigo-500 transition-all"/></div>}
+                    <button onClick={handleTap} className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 active:scale-[0.98] transition-transform rounded-3xl shadow-xl flex flex-col items-center justify-center text-white mb-6 relative overflow-hidden group"><div className="absolute inset-0 bg-white/10 opacity-0 group-active:opacity-100 transition-opacity"></div><div className="text-9xl font-bold tracking-tighter drop-shadow-md select-none">{count}</div><div className="text-white/60 font-medium uppercase tracking-widest mt-2 text-sm">{mode === 'UP' ? 'Tap to Count' : 'Tap to Reduce'}</div></button>
+                    <button onClick={handleReset} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 font-bold flex items-center justify-center gap-2 active:bg-slate-200 dark:active:bg-slate-700 transition-colors shrink-0"><IconRefresh /> Reset Counter</button>
+                </div>
+            );
+        };
+
+        const PracticeView = ({ currentPiece, pickPiece, stopSession }) => (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-8 animate-in fade-in duration-300 w-full overflow-hidden">
+                {currentPiece ? (
+                    <div className="w-full">
+                        <div className="text-sm uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Please Play</div>
+                        <div className="text-3xl font-serif font-medium text-slate-900 dark:text-white leading-tight mb-8">{currentPiece.title}</div>
+                        <div className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-500 dark:text-slate-400">Total Plays: {currentPiece.playCount}</div> 
+                    </div>
+                ) : <div className="text-slate-400 dark:text-slate-500 italic">Tap below to pick a piece</div>}
+                <div className="flex flex-col gap-4 w-full max-w-sm"><button onClick={pickPiece} className="bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-500 dark:active:bg-indigo-600 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all transform active:scale-95 w-full">{currentPiece ? "Next Piece" : "Start Session"}</button>{currentPiece && <button onClick={stopSession} className="flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-4 rounded-xl active:scale-95 transition-all"><IconStop /> Stop Session</button>}</div>
+            </div>
+        );
+
+        const LibraryView = ({ sortedPieces, deletePiece, syncStatus, isFirebaseEnabled, syncId, setSyncId }) => (
+            <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                    <div className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 px-2">Leaderboard</div>
+                <div className="space-y-3 pb-8">
+                    {sortedPieces.map((piece, index) => (
+                        <div key={piece.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
+                            <div className="absolute -left-2 -bottom-4 text-6xl font-bold text-slate-50 dark:text-slate-700/50 pointer-events-none z-0">{index + 1}</div>
+                            <div className="flex-1 pr-4 z-10 pl-2"><h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3><p className="text-xs text-slate-400 mt-1">Played {piece.playCount || 0} times</p></div>
+                            <button onClick={() => deletePiece(piece.id)} className="p-2 text-slate-300 hover:text-red-500 active:text-red-600 transition-colors z-10"><IconTrash /></button>
+                        </div>
+                    ))}
+                </div>
+
+                {/* CLOUD SYNC SECTION */}
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-8 mt-4 pb-8 px-2">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="text-sm font-bold uppercase tracking-wider text-slate-400">Cloud Sync</div>
+                        {syncStatus === 'synced' && <div className="text-xs text-green-500 font-bold flex gap-1 items-center"><IconCheck /> Synced</div>}
+                        {syncStatus === 'syncing' && <div className="text-xs text-indigo-500 font-bold animate-pulse">Syncing...</div>}
+                        {syncStatus === 'error' && <div className="text-xs text-red-500 font-bold">Offline</div>}
+                    </div>
+                    
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                        {!isFirebaseEnabled ? (
+                            <div className="text-center">
+                                <div className="text-slate-300 mb-2"><IconCloud /></div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Cloud sync is not configured.</p>
+                                <p className="text-[10px] text-slate-400">Paste your Firebase Config in the code to enable.</p>
+                            </div>
+                        ) : (
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 block">Secret Passphrase</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={syncId} 
+                                        onChange={(e) => setSyncId(e.target.value)} 
+                                        placeholder="e.g. MyPiano2025"
+                                        className="flex-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:text-white"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-2">
+                                    Enter the same passphrase on all your devices to sync data. Case sensitive.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const HistoryView = ({ history, replayPieceFromHistory, deleteHistoryEntry, formatTime }) => (
+            <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                <div className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 px-2">Recent Activity</div>
+                {history.length === 0 && <div className="text-center text-slate-400 mt-10 italic">No history yet. Start playing!</div>}
+                <div className="space-y-3 pb-24">
+                    {history.map((entry) => (
+                        <div key={entry.historyId} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                            <div className="flex flex-col"><span className="text-xs text-slate-400 font-mono">{formatTime(entry.timestamp)}</span><span className="font-medium text-slate-900 dark:text-white text-sm line-clamp-1">{entry.title}</span></div>
+                            <div className="flex items-center gap-1"><button onClick={() => replayPieceFromHistory(entry.pieceId)} className="p-2 text-indigo-400 active:text-indigo-600 dark:text-indigo-400 dark:active:text-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg"><IconPlus /></button><button onClick={() => deleteHistoryEntry(entry.historyId, entry.pieceId)} className="p-2 text-slate-300 active:text-red-600 transition-colors"><IconTrash /></button></div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+
+        function App() {
+            const [appMode, setAppMode] = useState('REPERTOIRE'); 
+            const [view, setView] = useState('PRACTICE'); 
+            const [isDark, setIsDark] = useState(() => localStorage.getItem('pianoTheme') === 'dark');
+            const [syncId, setSyncId] = useState(() => localStorage.getItem('pianoSyncId') || "");
+            const [syncStatus, setSyncStatus] = useState("disconnected"); // disconnected, syncing, synced, error
+
+            // --- PERSISTENCE WRAPPERS ---
+            
+            const saveData = async (key, data) => {
+                // Always save local first for speed/offline
+                localStorage.setItem(key, JSON.stringify(data));
+                
+                // If cloud is enabled, save there too
+                if (isFirebaseEnabled && syncId && db) {
+                    setSyncStatus("syncing");
+                    try {
+                        await db.collection('piano_users').doc(syncId).set({
+                            [key]: data,
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        setSyncStatus("synced");
+                        setTimeout(() => setSyncStatus("idle"), 2000);
+                    } catch (e) {
+                        console.error("Cloud Save Error", e);
+                        setSyncStatus("error");
+                    }
+                }
+            };
+
+            // Initial Loader
+            useEffect(() => {
+                if (isFirebaseEnabled && syncId && db) {
+                    setSyncStatus("syncing");
+                    db.collection('piano_users').doc(syncId).get().then(doc => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            if (data.pianoRepertoire_v9) setPieces(data.pianoRepertoire_v9);
+                            if (data.piano10k_v1) setTenKData(data.piano10k_v1);
+                            if (data.pianoHistory_v1) setHistory(data.pianoHistory_v1);
+                            if (data.pianoDailyStats_v1) setDailyStats(data.pianoDailyStats_v1);
+                            setSyncStatus("synced");
+                        }
+                    }).catch(err => {
+                        console.error("Cloud Load Error", err);
+                        setSyncStatus("error");
+                    });
+                }
+            }, [syncId]);
+
+            const [pieces, setPieces] = useState(() => {
+                const saved = localStorage.getItem('pianoRepertoire_v9'); 
+                return saved ? JSON.parse(saved) : INITIAL_REPERTOIRE;
+            });
+            const [tenKData, setTenKData] = useState(() => {
+                const saved = localStorage.getItem('piano10k_v1');
+                return saved ? JSON.parse(saved) : { hours: "", minutes: "" };
+            });
+            const [repState, setRepState] = useState(() => {
+                return { count: 0, target: 5, mode: 'UP' };
+            });
+            const [history, setHistory] = useState(() => {
+                const saved = localStorage.getItem('pianoHistory_v1');
+                return saved ? JSON.parse(saved) : [];
+            });
+            const [dailyStats, setDailyStats] = useState(() => {
+                const saved = JSON.parse(localStorage.getItem('pianoDailyStats_v1') || '{}');
+                const today = new Date().toDateString();
+                if (saved.date !== today) return { date: today, count: 0 };
+                return saved;
+            });
+
+            const [currentPiece, setCurrentPiece] = useState(null);
+            const [newPieceTitle, setNewPieceTitle] = useState("");
+            const [isAdding, setIsAdding] = useState(false);
+
+            const sortedPieces = useMemo(() => {
+                return [...pieces].sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+            }, [pieces]);
+
+            // -- EFFECTS (Updated to use saveData) --
+            useEffect(() => { saveData('pianoRepertoire_v9', pieces); }, [pieces]);
+            useEffect(() => { saveData('pianoHistory_v1', history); }, [history]);
+            useEffect(() => { saveData('pianoDailyStats_v1', dailyStats); }, [dailyStats]);
+            useEffect(() => { saveData('piano10k_v1', tenKData); }, [tenKData]);
+            
+            // Sync ID persistence
+            useEffect(() => {
+                if (syncId) localStorage.setItem('pianoSyncId', syncId);
+            }, [syncId]);
+
+            useEffect(() => {
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('pianoTheme', 'dark');
+                    const metaThemeColor = document.querySelector("meta[name=theme-color]");
+                    if (metaThemeColor) metaThemeColor.setAttribute("content", "#0f172a");
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('pianoTheme', 'light');
+                    const metaThemeColor = document.querySelector("meta[name=theme-color]");
+                    if (metaThemeColor) metaThemeColor.setAttribute("content", "#f8fafc");
+                }
+            }, [isDark]);
+
+            // -- LOGIC --
+            const recordPlay = (piece) => {
+                const now = Date.now();
+                const updatedPieces = pieces.map(p => p.id === piece.id ? { ...p, lastPlayed: now, playCount: (p.playCount || 0) + 1 } : p);
+                setPieces(updatedPieces);
+                const newHistoryEntry = { historyId: Date.now(), pieceId: piece.id, title: piece.title, timestamp: now };
+                setHistory([newHistoryEntry, ...history]);
+                setDailyStats(prev => ({ ...prev, count: prev.count + 1 }));
+            };
+
+            const pickPiece = () => {
+                const now = Date.now();
+                const candidates = pieces.map(p => {
+                    const timeSinceLastPlayed = p.lastPlayed === 0 ? 100000000000 : now - p.lastPlayed;
+                    const randomFactor = 0.5 + Math.random(); 
+                    return { ...p, score: timeSinceLastPlayed * randomFactor };
+                });
+                candidates.sort((a, b) => b.score - a.score);
+                const winner = candidates[0];
+                setCurrentPiece(winner);
+                recordPlay(winner);
+            };
+
+            const stopSession = () => setCurrentPiece(null);
+            const replayPieceFromHistory = (pieceId) => { const piece = pieces.find(p => p.id === pieceId); if (piece) recordPlay(piece); };
+            const deleteHistoryEntry = (historyId, pieceId) => {
+                setHistory(history.filter(h => h.historyId !== historyId));
+                setPieces(pieces.map(p => p.id === pieceId ? { ...p, playCount: Math.max(0, (p.playCount || 0) - 1) } : p));
+                setDailyStats(prev => ({ ...prev, count: Math.max(0, prev.count - 1) }));
+            };
+            const handleStartAdd = () => { setNewPieceTitle(`${pieces.length + 1}. `); setIsAdding(true); };
+            const addNewPiece = () => {
+                if (!newPieceTitle.trim()) return;
+                const newPiece = { id: Date.now(), title: newPieceTitle, lastPlayed: 0, playCount: 0 };
+                setPieces([newPiece, ...pieces]);
+                setNewPieceTitle("");
+                setIsAdding(false);
+            };
+            const deletePiece = (id) => { if(confirm("Delete this piece from your repertoire?")) setPieces(pieces.filter(p => p.id !== id)); };
+            const formatTime = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const cycleMode = () => {
+                if (appMode === 'REPERTOIRE') setAppMode('10K');
+                else if (appMode === '10K') setAppMode('REPS');
+                else setAppMode('REPERTOIRE');
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300 safe-area-pt overflow-hidden">
+                    <div className="p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm flex justify-between items-center shrink-0 z-10 relative">
+                        <button onClick={cycleMode} className="flex flex-col items-start justify-center h-10">
+                            <h1 className="text-lg font-bold flex items-center gap-2 text-slate-900 dark:text-white active:opacity-50 transition-opacity">
+                                {appMode === 'REPERTOIRE' && <><IconMusic /> Repertoire <IconChevronDown /></>}
+                                {appMode === '10K' && <><IconClock /> 10,000 Hours <IconChevronDown /></>}
+                                {appMode === 'REPS' && <><IconRepeat /> Repetitions <IconChevronDown /></>}
+                            </h1>
+                        </button>
+                        {appMode === 'REPERTOIRE' ? (
+                            <div className="flex gap-2 bg-slate-100 dark:bg-slate-700 p-1 rounded-full">
+                                <button onClick={() => setView('PRACTICE')} className={`p-2 rounded-full transition-colors ${view === 'PRACTICE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconPlay /></button>
+                                <button onClick={() => setView('LIBRARY')} className={`p-2 rounded-full transition-colors ${view === 'LIBRARY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconList /></button>
+                                <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconClock /></button>
+                                <button onClick={() => setIsDark(!isDark)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border-l border-slate-200 dark:border-slate-600 ml-1 pl-3">{isDark ? <IconSun /> : <IconMoon />}</button>
+                            </div>
+                        ) : (
+                            <button onClick={() => setIsDark(!isDark)} className="p-2 bg-slate-100 dark:bg-slate-700 rounded-full text-slate-500 dark:text-slate-300">{isDark ? <IconSun /> : <IconMoon />}</button>
+                        )}
+                    </div>
+
+                    {appMode === 'REPERTOIRE' && (
+                        <div className="bg-slate-100 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 py-1.5 px-4 flex justify-center items-center gap-4 text-xs font-mono text-slate-500 dark:text-slate-400 shrink-0 z-0">
+                            <span>Today: <strong className="text-slate-700 dark:text-slate-200">{dailyStats.count}</strong></span>
+                            <span className="text-slate-300 dark:text-slate-600">|</span>
+                            <span>Total: <strong className="text-slate-700 dark:text-slate-200">{pieces.reduce((sum, p) => sum + (p.playCount || 0), 0)}</strong></span>
+                        </div>
+                    )}
+
+                    <div className="flex-1 overflow-hidden relative flex flex-col">
+                        {appMode === '10K' && <TenThousandView tenKData={tenKData} setTenKData={setTenKData} />}
+                        {appMode === 'REPS' && <RepetitionsView repState={repState} setRepState={setRepState} />}
+                        {appMode === 'REPERTOIRE' && (
+                            <>
+                                {view === 'PRACTICE' && <PracticeView currentPiece={currentPiece} pickPiece={pickPiece} stopSession={stopSession} />}
+                                {view === 'LIBRARY' && <LibraryView sortedPieces={sortedPieces} deletePiece={deletePiece} syncStatus={syncStatus} isFirebaseEnabled={isFirebaseEnabled} syncId={syncId} setSyncId={setSyncId} />}
+                                {view === 'HISTORY' && <HistoryView history={history} replayPieceFromHistory={replayPieceFromHistory} deleteHistoryEntry={deleteHistoryEntry} formatTime={formatTime} />}
+                            </>
+                        )}
+                    </div>
+
+                    {appMode === 'REPERTOIRE' && (view === 'PRACTICE' || view === 'LIBRARY') && (
+                        <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 z-10 w-full" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                            {isAdding ? (
+                                <div className="space-y-3">
+                                    <input autoFocus value={newPieceTitle} onChange={(e) => setNewPieceTitle(e.target.value)} placeholder="e.g. 27. Rachmaninoff..." className="w-full p-4 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-lg outline-none focus:border-indigo-500" />
+                                    <div className="flex gap-2">
+                                        <button onClick={addNewPiece} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold">Save</button>
+                                        <button onClick={() => setIsAdding(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-semibold">Cancel</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <button onClick={handleStartAdd} className="flex items-center justify-center gap-2 w-full p-4 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors"><IconPlus /> Add New Piece</button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
