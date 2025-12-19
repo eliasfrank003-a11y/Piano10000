@@ -336,6 +336,7 @@
             const [isDark, setIsDark] = useState(() => localStorage.getItem('pianoTheme') === 'dark');
             const [syncId, setSyncId] = useState(() => localStorage.getItem('pianoSyncId') || "");
             const [syncStatus, setSyncStatus] = useState("disconnected"); // disconnected, syncing, synced, error
+            const isCloudReady = useRef(false); // 🔥 Prevents race condition overwrite
 
             // --- PERSISTENCE WRAPPERS ---
             
@@ -343,8 +344,8 @@
                 // Always save local first for speed/offline
                 localStorage.setItem(key, JSON.stringify(data));
                 
-                // If cloud is enabled, save there too
-                if (isFirebaseEnabled && syncId && db) {
+                // 🔥 BUG FIX: Only save to cloud if we have finished checking for updates
+                if (isFirebaseEnabled && syncId && db && isCloudReady.current) {
                     setSyncStatus("syncing");
                     try {
                         await db.collection('piano_users').doc(syncId).set({
@@ -364,6 +365,8 @@
             useEffect(() => {
                 if (isFirebaseEnabled && syncId && db) {
                     setSyncStatus("syncing");
+                    isCloudReady.current = false; // 🔒 LOCK cloud saves while fetching
+                    
                     db.collection('piano_users').doc(syncId).get().then(doc => {
                         if (doc.exists) {
                             const data = doc.data();
@@ -376,6 +379,8 @@
                     }).catch(err => {
                         console.error("Cloud Load Error", err);
                         setSyncStatus("error");
+                    }).finally(() => {
+                        isCloudReady.current = true; // 🔓 UNLOCK cloud saves
                     });
                 }
             }, [syncId]);
