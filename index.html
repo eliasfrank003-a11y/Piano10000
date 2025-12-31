@@ -1,75 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang=“en”>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- Icon: Custom SVG with WHITE BACKGROUND to fix iOS black icon issue -->
-    <link rel="apple-touch-icon" href="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23ffffff'/%3E%3Cpath fill='%23333333' d='M167.6 412.8c5.6-26.9 11.2-53.5 16.9-79.9 16.7-78.5 33.3-157.1 50-235.7 1.4-6.5 2.7-13.1 4.1-19.6 1.4-6.5 2.8-13 4.2-19.5 2.8-13.1 5.7-26.2 8.5-39.3 3-20.1 6-40.3 8.9-60.4 5.8-40.3 31.1-73.2 68.8-78.1 37.7-4.9 76.3 17.6 89.6 52.9 13.3 35.2 6.7 75.9-14.9 107.3-23.4 33.9-58.6 56.9-98 66.8-39.4 9.9-78.9-15.8-87.4-55.2-8.6-40-23-68.2-44.4-107.2-10.7-19.6-21.5-39-32.5-58.4-11.1-19.4-23-38.2-34.3-57.6-22.6 39.2-45.1 78.5-67.7 117.7-22.6 39.2-45.1 78.5-67.7 117.7-2.7 4.8-5.5 9.6-8.2 14.4-2.8 4.8-5.5 9.6-8.3 14.4-5.5 9.6-11.1 19.1 16.6 28.7-11.1 19.3-22.2 38.5-33.3 57.8-22.2 38.6-44.5 77.1-66.7 115.7-2.3 4-1.1 9.1 2.9 11.4 4.1 2.3 9.1 1.1 11.4-2.9 2.3-4 1.1-9.1-2.9-11.4-4.1-2.3-9.1-1.1-11.4 2.9 22.2 38.6 44.5 77.1 66.7 115.7 11.1 19.3 22.2 38.5 33.3 57.8 5.5 9.6 11.1 19.1 16.6 28.7-2.8 4.8 5.5 9.6 8.3 14.4 2.8 4.8 5.5 9.6 8.2 14.4 22.6 39.2 45.1 78.5 67.7 117.7 22.6 39.2 45.1 78.5 67.7 117.7 11.3 19.4 23.2 38.2 34.3 57.6 11 19.5 21.8 38.8 32.5 58.4 8.5 39.4 47.9 65.1 87.4 55.2 39.4-9.9 72.4-46.1 68.1-85.9-4.3-39.8-31.4-73.4-69.9-82-38.5-8.6-77.1 13.9-90.5 49.2-13.4 35.3-6.7 76 15.1 107.5 21.8 31.5 55 55.1 93.9 60.6 38.9 5.5 76.6-21.1 82.4-59.5 5.8-38.4-18.7-76.4-56.2-84.5-37.6-8.1-75.5 14.5-88.4 49.2-12.9 34.7-6.3 74.8 15.3 105.9 21.6 31.1 54.3 54.5 92.9 59.9 38.6 5.4 76.1-21 81.9-59.2 5.8-38.2-18.6-76-55.9-84.2-37.3-8.2-74.9 14.4-87.8 48.8-12.9 34.4-6.4 74.1 15.1 105 23.1 33.1 57.7 57.4 98.6 64.9 40.9 7.5 80.5-20.9 86.6-61.3 6.1-40.4-19.3-80.1-58.7-88.8-39.5-8.7-79.1 15.3-92.6 51.6-13.6 36.2-6.8 78.2 15.8 109.9 23.6 33.1 58.7 57.2 100.5 64.5 41.8 7.3 82.3-21.6 88.5-62.9 6.1-41.3-19.9-81.9-60.2-90.7-40.3-8.8-80.8 15.8-94.6 52.9-13.8 37.2-6.9 80.3 16.3 112.8 23.9 33.5 59.3 57.7 101.4 64.8 42.1 7.1 82.9-22 89.1-63.8 6.2-41.8-20.1-83-60.8-91.8-40.7-8.9-81.6 15.9-95.6 53.5-14 37.6-7 81.1 16.5 113.9 24.2 33.7 59.8 58.1 102.2 65.1 42.4 7 83.5-22.2 89.7-64.3 6.2-42.1-20.3-83.7-61.3-92.6-41.8-8.9-82.4 15.9-96.6 54-14.2 38.1-7.1 82.1 16.8 115.3 23.9 33.2 59.3 57.2 101.4 64.1 42.1 6.9 82.9-22 89.1-63.8 6.2-41.8-20.1-83-60.8-91.8-40.7-8.9-81.6 15.9-95.6 53.5-14 37.6-7 81.1 16.5 113.9z'/%3E%3C/svg%3E">
-
+    <meta charset=“UTF-8”>
+    <meta name=“viewport” content=“width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover”>
+    <link rel=“apple-touch-icon” href=“data:image/svg+xml;charset=utf-8,%3Csvg xmlns=‘http://www.w3.org/2000/svg' viewBox=‘0 0 512 512’%3E%3Crect width=‘512’ height=‘512’ fill=‘%23ffffff’/%3E%3Cpath fill=‘%23333333’ d=‘M167.6 412.8c5.6-26.9 11.2-53.5 16.9-79.9 16.7-78.5 33.3-157.1 50-235.7 1.4-6.5 2.7-13.1 4.1-19.6 1.4-6.5 2.8-13 4.2-19.5 2.8-13.1 5.7-26.2 8.5-39.3 3-20.1 6-40.3 8.9-60.4 5.8-40.3 31.1-73.2 68.8-78.1 37.7-4.9 76.3 17.6 89.6 52.9 13.3 35.2 6.7 75.9-14.9 107.3-23.4 33.9-58.6 56.9-98 66.8-39.4 9.9-78.9-15.8-87.4-55.2-8.6-40-23-68.2-44.4-107.2-10.7-19.6-21.5-39-32.5-58.4-11.1-19.4-23-38.2-34.3-57.6-22.6 39.2-45.1 78.5-67.7 117.7-22.6 39.2-45.1 78.5-67.7 117.7-2.7 4.8-5.5 9.6-8.2 14.4-2.8 4.8-5.5 9.6-8.3 14.4-5.5 9.6-11.1 19.1 16.6 28.7-11.1 19.3-22.2 38.5-33.3 57.8-22.2 38.6-44.5 77.1-66.7 115.7-2.3 4-1.1 9.1 2.9 11.4 4.1 2.3 9.1 1.1 11.4-2.9 2.3-4 1.1-9.1-2.9-11.4-4.1-2.3-9.1-1.1-11.4 2.9 22.2 38.6 44.5 77.1 66.7 115.7 11.1 19.3 22.2 38.5 33.3 57.8 5.5 9.6 11.1 19.1 16.6 28.7-2.8 4.8-5.5 9.6-8.3 14.4-2.8 4.8-5.5 9.6-8.2 14.4 22.6 39.2 45.1 78.5 67.7 117.7 22.6 39.2 45.1 78.5 67.7 117.7 11.3 19.4 23.2 38.2 34.3 57.6 11 19.5 21.8 38.8 32.5 58.4 8.5 39.4 47.9 65.1 87.4 55.2 39.4-9.9 72.4-46.1 68.1-85.9-4.3-39.8-31.4-73.4-69.9-82-38.5-8.6-77.1 13.9-90.5 49.2-13.4 35.3-6.7 76 15.1 107.5 21.8 31.5 55 55.1 93.9 60.6 38.9 5.5 76.6-21.1 82.4-59.5 5.8-38.4-18.7-76.4-56.2-84.5-37.6-8.1-75.5 14.5-88.4 49.2-12.9 34.7-6.3 74.8 15.3 105.9 21.6 31.1 54.3 54.5 92.9 59.9 38.6 5.4 76.1-21 81.9-59.2 5.8-38.2-18.6-76-55.9-84.2-37.3-8.2-74.9 14.4-87.8 48.8-12.9 34.4-6.4 74.1 15.1 105 23.1 33.1 57.7 57.4 98.6 64.9 40.9 7.5 80.5-20.9 86.6-61.3 6.1-40.4-19.3-80.1-58.7-88.8-39.5-8.7-79.1 15.3-92.6 51.6-13.6 36.2-6.8 78.2 15.8 109.9 23.6 33.1 58.7 57.2 100.5 64.5 41.8 7.3 82.3-21.6 88.5-62.9 6.1-41.3-19.9-81.9-60.2-90.7-40.3-8.8-80.8 15.8-94.6 52.9-13.8 37.2-6.9 80.3 16.3 112.8 23.9 33.5 59.3 57.7 101.4 64.8 42.1 7.1 82.9-22 89.1-63.8 6.2-41.8-20.1-83-60.8-91.8-40.7-8.9-81.6 15.9-95.6 53.5-14 37.6-7 81.1 16.5 113.9 24.2 33.7 59.8 58.1 102.2 65.1 42.4 7 83.5-22.2 89.7-64.3 6.2-42.1-20.3-83.7-61.3-92.6-41.8-8.9-82.4 15.9-96.6 54-14.2 38.1-7.1 82.1 16.8 115.3 23.9 33.2 59.3 57.2 101.4 64.1 42.1 6.9 82.9-22 89.1-63.8 6.2-41.8-20.1-83-60.8-91.8-40.7-8.9-81.6 15.9-95.6 53.5-14 37.6-7 81.1 16.5 113.9z’/%3E%3C/svg%3E”>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Piano v28">
-    
-    <title>Piano v28</title>
-    <!-- Confetti Library -->
+    <meta name="apple-mobile-web-app-title" content="Piano v29">
+    <title>Piano v29</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-    
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
     <style>
-        /* GLOBAL STYLES */
-        html { 
-            background-color: #f8fafc; /* slate-50 for light mode */
-            transition: background-color 0.3s ease;
-        }
-        html.dark { 
-            background-color: #0f172a; /* slate-900 for dark mode */
-        }
-        body { 
-            background-color: transparent; 
-            overscroll-behavior: none; 
-            overflow: hidden; 
-            width: 100%;
-            height: 100%;
-            position: fixed; 
-            inset: 0;
-        }
-        #root {
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        .safe-area-pt { padding-top: env(safe-area-inset-top); }
+        html { background-color: #f8fafc; transition: background-color 0.3s ease; height: 100%; }
+        html.dark { background-color: #0f172a; }
+        body { background-color: transparent; overscroll-behavior: none; width: 100%; height: 100%; margin: 0; }
+        #root { height: 100%; width: 100%; display: flex; flex-direction: column; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .safe-area-pt { padding-top: env(safe-area-inset-top); }
+        
+        /* 3D Flip Card Styles */
+        .perspective { perspective: 1000px; }
+        .card-inner { position: relative; width: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .card-flipped { transform: rotateY(180deg); }
+        .card-front, .card-back { position: relative; width: 100%; backface-visibility: hidden; }
+        .card-back { position: absolute; top: 0; left: 0; transform: rotateY(180deg); height: 100%; }
+        
+        /* Gold Milestone Animation */
+        @keyframes gold-glow {
+            0% { border-color: #fbbf24; box-shadow: 0 0 5px #fbbf24; }
+            50% { border-color: #f59e0b; box-shadow: 0 0 20px #f59e0b; }
+            100% { border-color: #fbbf24; box-shadow: 0 0 5px #fbbf24; }
+        }
+        .milestone-gold { animation: gold-glow 2s infinite ease-in-out; border-width: 2px !important; }
     </style>
 </head>
 <body class="text-slate-900 font-sans selection:bg-indigo-200">
-
     <div id="root"></div>
-
     <script type="text/babel">
-        // =================================================================
-        // APP VERSION: v28
-        // =================================================================
-
-        // =================================================================
-        // 🔥 PASTE YOUR FIREBASE CONFIG HERE TO ENABLE CLOUD SYNC 🔥
-        // =================================================================
         const userFirebaseConfig = {
             apiKey: "AIzaSyBtbs3d0ifYfTE2H0ly7-rix0wVhbdf25I",
             authDomain: "piano10000-35804.firebaseapp.com",
@@ -79,40 +53,16 @@
             appId: "1:1005611018408:web:c067db2e119cc9f3a5fa9d",
             measurementId: "G-63W95VNLK6"
         };
-        // =================================================================
 
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- FIREBASE SETUP ---
-        let db = null;
-        let isFirebaseEnabled = false;
-
-        try {
-            // Check if user has pasted config OR if environment has config
-            const configToUse = (userFirebaseConfig && userFirebaseConfig.apiKey) 
-                ? userFirebaseConfig 
-                : (typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null);
-
-            if (configToUse) {
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(configToUse);
-                }
-                db = firebase.firestore();
-                isFirebaseEnabled = true;
-                console.log("Firebase initialized (Firestore only)");
-            }
-        } catch (e) {
-            console.warn("Firebase Init Failed:", e);
-        }
-
-        // --- ICONS ---
+        // Icons
         const IconMusic = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>;
         const IconPlus = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
+        const IconMinus = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>;
         const IconList = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
         const IconClock = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
-        // UPDATED TRASH ICON
         const IconTrash = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>;
-        
         const IconCrown = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"></path></svg>;
         const IconPlay = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
         const IconStop = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>;
@@ -121,44 +71,13 @@
         const IconRepeat = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>;
         const IconRefresh = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
         const IconCloud = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>;
-        const IconCheck = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
         const IconLogOut = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
-        const IconSettings = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
-        const IconMoon = ({ size = 20, ...props }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-        );
-        const IconSun = ({ size = 20, ...props }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                <line x1="1" y1="12" x2="3" y2="12"></line>
-                <line x1="21" y1="12" x2="23" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-        );
+        const IconMoon = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>;
+        const IconSun = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>;
+        const IconFlame = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>;
+        const IconInfo = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
 
-        // --- DATA ---
-        // Empty by default for new users. Data loads from passkey.
-        const INITIAL_REPERTOIRE = [];
-
-        // --- 10K LOGIC HELPERS ---
-        const START_DATE = new Date("2024-02-01"); 
-
-        const LEGACY_MILESTONES = [
-            { hours: 900, date: new Date("2025-11-08"), avg: "1h 24m" },
-            { hours: 800, date: new Date("2025-08-18"), avg: "1h 25m" },
-            { hours: 700, date: new Date("2025-06-30"), avg: "1h 22m" },
-            { hours: 600, date: new Date("2025-04-30"), avg: "1h 20m" },
-            { hours: 500, date: new Date("2024-12-31"), avg: "1h 29m" },
-            { hours: 400, date: new Date("2024-11-13"), avg: "1h 24m" },
-        ];
-
+        // Helpers
         function formatDecimalToHMS(decimalHours) {
             const totalSeconds = Math.round(decimalHours * 3600);
             const h = Math.floor(totalSeconds / 3600);
@@ -167,90 +86,86 @@
             return `${h}h ${m}m ${s}s`;
         }
 
-        function calculateDaysAgo(date) {
-            const now = new Date();
-            const diffTime = Math.abs(now - date);
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays;
-        }
+        // Sub-Components
+        const TenThousandView = ({ tenKData, setTenKData, startDate }) => {
+            const stats = useMemo(() => {
+                const now = new Date();
+                const start = new Date(startDate || "2024-02-01");
+                const timeDiff = now - start;
+                const daysPassed = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                const totalPlayed = parseFloat(tenKData.hours || 0) + (parseFloat(tenKData.minutes || 0) / 60);
+                if (daysPassed <= 0 || totalPlayed === 0) return null;
+                const avgHoursPerDay = totalPlayed / daysPassed;
+                const percentage = Math.min(100, (totalPlayed / 10000) * 100).toFixed(2);
+                const remainingHours = 10000 - totalPlayed;
+                const daysRemaining = remainingHours / avgHoursPerDay;
+                const finishDate = new Date();
+                finishDate.setDate(now.getDate() + daysRemaining);
+                
+                return { 
+                    daysPassed, 
+                    avgDisplay: formatDecimalToHMS(avgHoursPerDay), 
+                    percentage, 
+                    finishDate: finishDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 
+                    nextMilestone: (Math.floor(totalPlayed / 100) + 1) * 100, 
+                    daysToMilestone: Math.ceil((((Math.floor(totalPlayed / 100) + 1) * 100) - totalPlayed) / avgHoursPerDay), 
+                    totalPlayed 
+                };
+            }, [tenKData, startDate]);
 
-        function calculate10kStats(totalHours, totalMinutes) {
-            const now = new Date();
-            const timeDiff = now - START_DATE;
-            const daysPassed = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-            const totalPlayed = parseFloat(totalHours || 0) + (parseFloat(totalMinutes || 0) / 60);
-            if (daysPassed <= 0 || totalPlayed === 0) return null;
-            const avgHoursPerDay = totalPlayed / daysPassed;
-            const percentage = Math.min(100, (totalPlayed / 10000) * 100).toFixed(2);
-            const remainingHours = 10000 - totalPlayed;
-            const daysRemaining = remainingHours / avgHoursPerDay;
-            const finishDate = new Date();
-            finishDate.setDate(now.getDate() + daysRemaining);
-            
-            // Calc Years/Month remaining (Padded: 07 y, 04 m)
-            const years = Math.floor(daysRemaining / 365);
-            const months = Math.floor((daysRemaining % 365) / 30);
-            
-            const yearsFormatted = String(years).padStart(2, '0') + ' y';
-            const monthsFormatted = String(months).padStart(2, '0') + ' m';
+            const LEGACY_MILESTONES = [
+                { hours: 900, date: new Date("2025-11-08"), avg: "1h 24m", note: "Finalizing Rachmaninoff 2nd Mvt." },
+                { hours: 800, date: new Date("2025-08-18"), avg: "1h 25m", note: "Teacher change - focusing on technique." },
+                { hours: 700, date: new Date("2025-06-30"), avg: "1h 22m", note: "Piano upgrade - New acoustic action." },
+                { hours: 600, date: new Date("2025-04-30"), avg: "1h 20m", note: "Bach Partita marathon." },
+                { hours: 500, date: new Date("2024-12-31"), avg: "1h 29m", note: "End of year review." },
+            ];
 
-            const nextMilestone = (Math.floor(totalPlayed / 100) + 1) * 100;
-            const hoursToMilestone = nextMilestone - totalPlayed;
-            const daysToMilestone = Math.ceil(hoursToMilestone / avgHoursPerDay);
-            return { 
-                daysPassed, 
-                avgDisplay: formatDecimalToHMS(avgHoursPerDay), 
-                percentage, 
-                finishDate: finishDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 
-                yearsFormatted,
-                monthsFormatted,
-                nextMilestone, 
-                daysToMilestone, 
-                totalPlayed 
-            };
-        }
-
-        // --- SUB-COMPONENTS ---
-
-        const TenThousandView = ({ tenKData, setTenKData }) => {
-            const stats = calculate10kStats(tenKData.hours, tenKData.minutes);
             return (
-                <div className="flex-1 flex flex-col p-6 overflow-y-auto w-full animate-in fade-in zoom-in duration-300 no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700 z-20 relative">
-                        <div className="flex justify-between items-center mb-4"><h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2></div>
-                        <div className="flex gap-4 items-center">
-                            <div className="flex-1"><label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Hours</label><input type="number" value={tenKData.hours} onChange={(e) => setTenKData({...tenKData, hours: e.target.value})} placeholder="0" className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 focus:border-indigo-500 outline-none text-slate-900 dark:text-white p-1"/></div>
-                            <div className="flex-1"><label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Minutes</label><input type="number" value={tenKData.minutes} onChange={(e) => setTenKData({...tenKData, minutes: e.target.value})} placeholder="0" className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 focus:border-indigo-500 outline-none text-slate-900 dark:text-white p-1"/></div>
+                <div className="flex-1 flex flex-col p-6 overflow-y-auto w-full no-scrollbar touch-pan-y" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700">
+                        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Progress</h2>
+                        <div className="flex gap-4">
+                            <div className="flex-1"><label className="text-xs text-slate-500 mb-1 block">Hours</label><input type="number" value={tenKData.hours} onChange={(e) => setTenKData({...tenKData, hours: e.target.value})} className="w-full text-2xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 outline-none dark:text-white"/></div>
+                            <div className="flex-1"><label className="text-xs text-slate-500 mb-1 block">Minutes</label><input type="number" value={tenKData.minutes} onChange={(e) => setTenKData({...tenKData, minutes: e.target.value})} className="w-full text-2xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 outline-none dark:text-white"/></div>
                         </div>
                     </div>
-                    {stats ? (
-                        <>
-                            <div className="mb-4"><div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-2"><span>MASTERY</span><span>{stats.percentage}%</span></div><div className="h-6 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner relative"><div className="h-full bg-green-500 transition-all duration-1000 ease-out relative" style={{ width: `${stats.percentage}%` }}><div className="absolute inset-0 bg-white/20"></div></div></div><div className="flex justify-between mt-2 text-xs text-slate-400 font-mono"><span>Avg: {stats.avgDisplay}/day</span><span>Day {stats.daysPassed}</span></div></div>
-                            <div className="relative mt-6 pb-12">
-                                {/* Adjusted Line: top-8 (32px) to connect exactly to the center of the first dot */}
-                                <div className="absolute left-8 top-8 bottom-10 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0"></div>
-                                
-                                <div className="relative z-10 mb-8 pl-16">
-                                    <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-50 dark:ring-slate-900"></div>
-                                    <div className="border border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-3 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                    {stats && (
+                        <div className="relative pb-10">
+                            <div className="absolute left-8 top-8 bottom-10 w-0.5 bg-slate-200 dark:bg-slate-700"></div>
+                            
+                            {/* Next Goal */}
+                            <div className="relative z-10 mb-8 pl-16">
+                                <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-yellow-400 ring-4 ring-yellow-400/20"></div>
+                                <div className="bg-white dark:bg-slate-800 border border-yellow-200 p-4 rounded-xl shadow-sm">
+                                    <div className="flex justify-between items-center">
                                         <div>
-                                            <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Estimated Finish</div>
-                                            <div className="text-lg font-bold text-slate-700 dark:text-slate-300">{stats.finishDate}</div>
+                                            <div className="text-yellow-600 text-[10px] font-bold uppercase">Next Goal: {stats.nextMilestone}h</div>
+                                            <div className="text-sm font-bold dark:text-white">{stats.finishDate}</div>
                                         </div>
-                                        <div className="text-right flex flex-col items-end">
-                                            <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{stats.yearsFormatted}</span>
-                                            <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{stats.monthsFormatted}</span>
+                                        <div className="text-right">
+                                            <div className="text-xl font-bold text-yellow-500">{stats.daysToMilestone}</div>
+                                            <div className="text-[10px] text-slate-400 font-bold">DAYS LEFT</div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="relative z-10 mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-yellow-400 ring-4 ring-yellow-400/20 shadow-lg shadow-yellow-400/50"></div><div className="bg-gradient-to-r from-yellow-50 to-white dark:from-slate-800 dark:to-slate-800 border border-yellow-200 dark:border-yellow-900/30 rounded-xl p-4 shadow-sm"><div className="flex justify-between items-center"><div><div className="text-yellow-600 dark:text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><IconStar /> Next Goal</div><div className="text-xl font-bold text-slate-900 dark:text-white">{stats.nextMilestone} Hours</div></div><div className="text-right"><div className="text-2xl font-bold text-yellow-500">{stats.daysToMilestone}</div><div className="text-[10px] text-slate-400 uppercase font-bold">Days Left</div></div></div></div></div>
-                                <div className="relative z-10 mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-green-500 ring-4 ring-green-500/20 animate-pulse"></div><div className="bg-white dark:bg-slate-800 border border-green-200 dark:border-green-900/50 rounded-xl p-4 shadow-sm"><div className="flex justify-between items-center mb-1"><div className="text-green-600 dark:text-green-400 text-xs font-bold uppercase tracking-wider">Current</div><div className="text-xs text-slate-400">Today</div></div><div className="text-2xl font-bold text-slate-900 dark:text-white">{Math.floor(stats.totalPlayed)} <span className="text-sm font-normal text-slate-500">Hours</span></div></div></div>
-                                {LEGACY_MILESTONES.map((milestone, idx) => (<div key={idx} className="relative z-10 opacity-60 hover:opacity-100 transition-opacity mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div><div className="flex-1"><div className="flex justify-between items-baseline"><span className="text-lg font-bold text-slate-700 dark:text-slate-300">{milestone.hours} Hours</span><span className="text-xs text-slate-400">{milestone.avg}/day</span></div><div className="text-xs text-slate-400 mt-0.5">{calculateDaysAgo(milestone.date)} days ago</div></div></div>))}
-                                <div className="relative z-10 pl-16"><div className="absolute left-8 top-1/2 -translate-x-1/2 w-4 h-full bg-slate-50 dark:bg-slate-900 z-0"></div><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-900 dark:bg-white border-2 border-slate-50 dark:border-slate-900 z-10"></div><div className="flex-1"><div className="text-sm font-bold text-slate-900 dark:text-white">Journey Started</div><div className="text-xs text-slate-400">Feb 1, 2024</div></div></div>
                             </div>
-                        </>
-                    ) : <div className="text-center text-slate-400 mt-10 p-6 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">Enter your total hours above to generate your timeline.</div>}
+
+                            {/* Milestones */}
+                            {LEGACY_MILESTONES.map((m, i) => (
+                                <div key={i} className="relative z-10 mb-8 pl-16">
+                                    <div className={`absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-400 ${m.hours % 1000 === 0 ? 'milestone-gold' : ''}`}></div>
+                                    <div className="flex justify-between items-center group">
+                                        <div>
+                                            <div className="font-bold text-slate-700 dark:text-slate-300">{m.hours} Hours</div>
+                                            <div className="text-xs text-slate-400">{m.date.toLocaleDateString()}</div>
+                                        </div>
+                                        <button onClick={() => alert(m.note)} className="p-2 text-slate-300 hover:text-indigo-500 transition-colors"><IconInfo /></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -258,433 +173,214 @@
         const RepetitionsView = ({ repState, setRepState }) => {
             const { count, target, mode } = repState;
             const updateCount = (newCount) => setRepState(prev => ({ ...prev, count: newCount }));
-            const toggleMode = (newMode) => setRepState(prev => ({ ...prev, mode: newMode, count: newMode === 'DOWN' ? (parseInt(prev.target) || 5) : 0 }));
-            const triggerConfetti = () => {
-                const duration = 3000, animationEnd = Date.now() + duration;
-                const randomInOut = (min, max) => Math.random() * (max - min) + min;
-                const frame = () => {
-                    if (animationEnd - Date.now() <= 0) return;
-                    confetti({ particleCount: 3, startVelocity: 0, ticks: 300, origin: { x: Math.random(), y: -0.1 }, gravity: randomInOut(0.5, 1.0), scalar: randomInOut(0.8, 1.2), drift: randomInOut(-0.4, 0.4), colors: ['#6366f1', '#a855f7', '#ec4899', '#3b82f6', '#14b8a6'] });
-                    requestAnimationFrame(frame);
-                };
-                frame();
+            const handleTap = () => {
+                if (mode === 'UP') updateCount(count + 1);
+                else {
+                    if (count === 1) confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    updateCount(count > 0 ? count - 1 : 0);
+                }
             };
-            const handleTap = () => { if (mode === 'UP') updateCount(count + 1); else { if (count === 1) triggerConfetti(); updateCount(count > 0 ? count - 1 : 0); } };
-            const handleReset = () => { if (mode === 'DOWN') updateCount(parseInt(target) || 5); else updateCount(0); };
-            const handleTargetChange = (e) => { const val = e.target.value; setRepState(prev => { const newState = { ...prev, target: val }; if (prev.mode === 'DOWN') newState.count = parseInt(val) || 0; return newState; }); };
+            const adjustTarget = (delta) => {
+                const newTarget = Math.max(1, parseInt(target) + delta);
+                setRepState(prev => ({ ...prev, target: newTarget, count: prev.mode === 'DOWN' ? newTarget : prev.count }));
+            };
             return (
-                <div className="flex-1 flex flex-col p-6 animate-in fade-in zoom-in duration-300 h-full" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                <div className="flex-1 flex flex-col p-6 h-full touch-pan-y">
                     <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-xl mb-6 shrink-0">
-                        {/* Swapped Button Order: Count Down first */}
-                        <button onClick={() => toggleMode('DOWN')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'DOWN' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Count Down</button>
-                        <button onClick={() => toggleMode('UP')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'UP' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Count Up</button>
+                        <button onClick={() => setRepState(p => ({...p, mode: 'DOWN', count: p.target}))} className={`flex-1 py-2 rounded-lg text-sm font-bold ${mode === 'DOWN' ? 'bg-white dark:bg-slate-600 shadow' : 'text-slate-500'}`}>Down</button>
+                        <button onClick={() => setRepState(p => ({...p, mode: 'UP', count: 0}))} className={`flex-1 py-2 rounded-lg text-sm font-bold ${mode === 'UP' ? 'bg-white dark:bg-slate-600 shadow' : 'text-slate-500'}`}>Up</button>
                     </div>
-                    {mode === 'DOWN' && <div className="flex items-center gap-3 mb-4 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shrink-0"><span className="text-sm font-bold text-slate-500">Start From:</span><input type="number" value={target} onChange={handleTargetChange} className="flex-1 bg-slate-100 dark:bg-slate-700 text-right font-bold text-slate-900 dark:text-white outline-none rounded-lg px-3 py-1 focus:ring-2 focus:ring-indigo-500 transition-all"/></div>}
-                    <button onClick={handleTap} className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 active:scale-[0.98] transition-transform rounded-3xl shadow-xl flex flex-col items-center justify-center text-white mb-6 relative overflow-hidden group"><div className="absolute inset-0 bg-white/10 opacity-0 group-active:opacity-100 transition-opacity"></div><div className="text-9xl font-bold tracking-tighter drop-shadow-md select-none">{count}</div><div className="text-white/60 font-medium uppercase tracking-widest mt-2 text-sm">{mode === 'UP' ? 'Tap to Count' : 'Tap to Reduce'}</div></button>
-                    <button onClick={handleReset} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 font-bold flex items-center justify-center gap-2 active:bg-slate-200 dark:active:bg-slate-700 transition-colors shrink-0"><IconRefresh /> Reset Counter</button>
+                    
+                    <div className="flex items-center justify-between mb-6 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <button onClick={() => adjustTarget(-1)} className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500"><IconMinus /></button>
+                        <div className="text-center">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">Target</div>
+                            <div className="text-xl font-bold dark:text-white">{target}</div>
+                        </div>
+                        <button onClick={() => adjustTarget(1)} className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500"><IconPlus /></button>
+                    </div>
+
+                    <button onClick={handleTap} className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl shadow-xl flex flex-col items-center justify-center text-white mb-6 active:scale-95 transition-transform">
+                        <div className="text-9xl font-bold">{count}</div>
+                        <div className="text-white/60 font-medium uppercase tracking-widest mt-2 text-sm">{mode === 'UP' ? 'Tap to Count' : 'Tap to Reduce'}</div>
+                    </button>
+                    <button onClick={() => updateCount(mode === 'DOWN' ? target : 0)} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 font-bold flex items-center justify-center gap-2"><IconRefresh /> Reset</button>
                 </div>
             );
         };
 
-        const PracticeView = ({ currentPiece, pickPiece, stopSession }) => (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-8 animate-in fade-in duration-300 w-full overflow-hidden">
-                {currentPiece ? (
-                    <div className="w-full">
-                        <div className="text-sm uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Please Play</div>
-                        <div className="text-3xl font-serif font-medium text-slate-900 dark:text-white leading-tight mb-8">{currentPiece.title}</div>
-                        <div className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-500 dark:text-slate-400">Total Plays: {currentPiece.playCount}</div> 
-                    </div>
-                ) : <div className="text-slate-400 dark:text-slate-500 italic">Tap below to pick a piece</div>}
-                <div className="flex flex-col gap-4 w-full max-w-sm"><button onClick={pickPiece} className="bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-500 dark:active:bg-indigo-600 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all transform active:scale-95 w-full">{currentPiece ? "Next Piece" : "Start Session"}</button>{currentPiece && <button onClick={stopSession} className="flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-4 rounded-xl active:scale-95 transition-all"><IconStop /> Stop Session</button>}</div>
-            </div>
-        );
-
-        // --- NEW VIEW: Repertoire (Sorted by Added Date/ID) ---
-        const RepertoireView = ({ sortedPieces, deletePiece }) => (
-            <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                <div className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 px-2">My Repertoire</div>
-                <div className="space-y-3 pb-8">
-                    {/* Sort by ID descending (newest first) */}
-                    {[...sortedPieces].sort((a,b) => b.id - a.id).map((piece, index) => (
-                        <div key={piece.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                            <div className="flex-1 pr-4 pl-2">
-                                <h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3>
-                            </div>
-                            <button onClick={() => deletePiece(piece.id)} className="p-2 text-slate-300 hover:text-red-500 active:text-red-600 transition-colors"><IconTrash /></button>
-                        </div>
-                    ))}
-                    {sortedPieces.length === 0 && <div className="text-center text-slate-400 mt-10 p-6">No pieces yet. Add one below!</div>}
-                </div>
-            </div>
-        );
-
-        const LeaderboardView = ({ sortedPieces }) => (
-            <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                    <div className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 px-2">Most Played</div>
-                <div className="space-y-3 pb-8">
-                    {sortedPieces.map((piece, index) => (
-                        <div key={piece.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
-                            <div className="absolute -left-2 -bottom-4 text-6xl font-bold text-slate-50 dark:text-slate-700/50 pointer-events-none z-0">{index + 1}</div>
-                            <div className="flex-1 pr-4 z-10 pl-2"><h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3><p className="text-xs text-slate-400 mt-1">Played {piece.playCount || 0} times</p></div>
-                        </div>
-                    ))}
-                    {sortedPieces.length === 0 && <div className="text-center text-slate-400 mt-10 p-6">No pieces yet. Add one below!</div>}
-                </div>
-            </div>
-        );
-
-        const SettingsView = ({ syncStatus, isFirebaseEnabled, syncId, setSyncId, handleLogout, isDark, setIsDark }) => {
-            // Local state for input to prevent immediate sync
-            const [localInput, setLocalInput] = useState("");
-
-            const handleConnect = () => {
-                if (localInput.trim()) {
-                    setSyncId(localInput.trim());
-                }
-            };
-
-            const handleKeyDown = (e) => {
-                if (e.key === 'Enter') {
-                    handleConnect();
-                }
-            };
+        const RepertoireView = ({ pieces, deletePiece, toggleRedList }) => {
+            const [filterRed, setFilterRed] = useState(false);
+            const [flippedId, setFlippedId] = useState(null);
+            
+            const filtered = pieces.filter(p => filterRed ? p.isRedListed : true);
 
             return (
-                <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                      <div className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 px-2">Settings</div>
-
-                    {/* CLOUD SYNC SECTION */}
-                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="text-sm font-bold text-slate-900 dark:text-white">Cloud Sync</div>
-                            {syncStatus === 'synced' && (
-                                <div className="text-xs text-green-500 font-bold flex gap-2 items-center">
-                                    <span className="relative flex h-2 w-2">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                    </span>
-                                    Connected
-                                </div>
-                            )}
-                            {syncStatus === 'syncing' && <div className="text-xs text-indigo-500 font-bold animate-pulse">Syncing...</div>}
-                            {syncStatus === 'error' && <div className="text-xs text-red-500 font-bold">Offline</div>}
-                            {syncStatus === 'disconnected' && <div className="text-xs text-slate-400 font-bold">Disconnected</div>}
-                        </div>
-                        
-                        {!isFirebaseEnabled ? (
-                            <div className="text-center">
-                                <div className="text-slate-300 mb-2"><IconCloud /></div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Cloud sync is not configured.</p>
-                                <p className="text-[10px] text-slate-400">Paste your Firebase Config in the code to enable.</p>
-                            </div>
-                        ) : (
-                            <div>
-                                {syncId ? (
-                                    <div className="flex flex-col gap-3">
-                                        <div className="p-3 bg-slate-100 dark:bg-slate-900 rounded-lg flex justify-between items-center">
-                                            <div className="text-xs font-mono text-slate-500">ID: ••••••••{syncId.slice(-3)}</div>
-                                            <button onClick={handleLogout} className="text-xs font-bold text-red-500 flex items-center gap-1"><IconLogOut /> Disconnect</button>
+                <div className="flex-1 overflow-y-auto p-4 no-scrollbar touch-pan-y" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                    <div className="flex justify-between items-center mb-4 px-2">
+                        <div className="text-sm font-bold uppercase tracking-wider text-slate-400">My Repertoire</div>
+                        <button onClick={() => setFilterRed(!filterRed)} className={`p-2 rounded-lg transition-colors ${filterRed ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400'}`}><IconFlame /></button>
+                    </div>
+                    <div className="space-y-4 pb-12">
+                        {filtered.map((piece) => (
+                            <div key={piece.id} className="perspective h-20">
+                                <div className={`card-inner h-full ${flippedId === piece.id ? 'card-flipped' : ''}`}>
+                                    {/* Front */}
+                                    <div className={`card-front bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between ${piece.isRedListed ? 'ring-2 ring-red-500/30' : ''}`}>
+                                        <div className="flex-1" onClick={() => setFlippedId(flippedId === piece.id ? null : piece.id)}>
+                                            <h3 className="font-medium dark:text-white">{piece.title}</h3>
+                                            <p className="text-[10px] text-slate-400">Plays: {piece.playCount}</p>
                                         </div>
-                                        <p className="text-[10px] text-slate-400">Data is syncing to this ID. Disconnect to clear local data.</p>
+                                        <div className="flex gap-1">
+                                            <button onClick={() => toggleRedList(piece.id)} className={`p-2 transition-colors ${piece.isRedListed ? 'text-red-500' : 'text-slate-200'}`}><IconFlame /></button>
+                                            <button onClick={() => deletePiece(piece.id)} className="p-2 text-slate-200 hover:text-red-500"><IconTrash /></button>
+                                        </div>
                                     </div>
-                                ) : (
-                                    <>
-                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 block">Secret Passphrase</label>
-                                        <div className="flex gap-2">
-                                            <input 
-                                                type="text" 
-                                                value={localInput} 
-                                                onChange={(e) => setLocalInput(e.target.value)} 
-                                                onKeyDown={handleKeyDown}
-                                                placeholder="e.g. MyPiano2025"
-                                                className="flex-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:text-white"
-                                            />
-                                            <button onClick={handleConnect} className="bg-indigo-600 text-white px-4 rounded-lg text-sm font-bold">Connect</button>
-                                        </div>
-                                        <p className="text-[10px] text-slate-400 mt-2">
-                                            Type a passphrase and press Enter or Connect to create/join a session.
-                                        </p>
-                                    </>
-                                )}
+                                    {/* Back */}
+                                    <div className="card-back bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 flex items-center justify-between" onClick={() => setFlippedId(null)}>
+                                        <div className="text-xs text-indigo-600 font-mono">Added: {new Date(piece.dateAdded || piece.id).toLocaleDateString()}</div>
+                                        <div className="text-[10px] font-bold text-indigo-400 uppercase">Piece Details</div>
+                                    </div>
+                                </div>
                             </div>
-                        )}
-                    </div>
-
-                    {/* APPEARANCE SECTION */}
-                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-6 flex justify-between items-center">
-                        <div className="text-sm font-bold text-slate-900 dark:text-white">Dark Mode</div>
-                        <button 
-                            onClick={() => setIsDark(!isDark)}
-                            className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 flex items-center ${isDark ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
-                        >
-                            <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-800">
-                                {isDark ? <IconMoon size={12}/> : <IconSun size={12}/>}
-                            </div>
-                        </button>
-                    </div>
-
-                    <div className="px-2 text-center text-xs text-slate-400">
-                        Piano v28<br/>
-                        Build: 19.12.2025
+                        ))}
                     </div>
                 </div>
             );
         };
-
-        const HistoryView = ({ history, replayPieceFromHistory, formatTime }) => (
-            <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                <div className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 px-2">Recent Activity</div>
-                {history.length === 0 && <div className="text-center text-slate-400 mt-10 italic">No history yet. Start playing!</div>}
-                <div className="space-y-3 pb-24">
-                    {history.map((entry) => (
-                        <div key={entry.historyId} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                            <div className="flex flex-col"><span className="text-xs text-slate-400 font-mono">{formatTime(entry.timestamp)}</span><span className="font-medium text-slate-900 dark:text-white text-sm line-clamp-1">{entry.title}</span></div>
-                            <div className="flex items-center gap-1"><button onClick={() => replayPieceFromHistory(entry.pieceId)} className="p-2 text-indigo-400 active:text-indigo-600 dark:text-indigo-400 dark:active:text-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg"><IconPlus /></button></div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
 
         function App() {
             const [appMode, setAppMode] = useState('REPERTOIRE'); 
             const [view, setView] = useState('PRACTICE'); 
-            const [isDark, setIsDark] = useState(() => localStorage.getItem('pianoTheme') === 'dark');
+            const [isDark, setIsDark] = useState(() => {
+                const saved = localStorage.getItem('pianoTheme');
+                return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+            });
             const [syncId, setSyncId] = useState(() => localStorage.getItem('pianoSyncId') || "");
-            const [syncStatus, setSyncStatus] = useState("disconnected"); // disconnected, syncing, synced, error
-            const isCloudReady = useRef(false); // 🔥 Prevents race condition overwrite
+            const [startDate, setStartDate] = useState(() => localStorage.getItem('pianoStartDate') || "2024-02-01");
 
-            // --- PERSISTENCE WRAPPERS ---
-            
-            const saveData = async (key, data) => {
-                // Always save local first for speed/offline
-                localStorage.setItem(key, JSON.stringify(data));
-                
-                // 🔥 BUG FIX: Only save to cloud if we have finished checking for updates
-                if (isFirebaseEnabled && syncId && db && isCloudReady.current) {
-                    setSyncStatus("syncing");
-                    try {
-                        await db.collection('piano_users').doc(syncId).set({
-                            [key]: data,
-                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true });
-                        setSyncStatus("synced");
-                        // REMOVED TIMEOUT so status stays synced
-                    } catch (e) {
-                        console.error("Cloud Save Error", e);
-                        setSyncStatus("error");
-                    }
-                }
-            };
-
-            // Initial Loader
-            useEffect(() => {
-                if (isFirebaseEnabled && syncId && db) {
-                    setSyncStatus("syncing");
-                    isCloudReady.current = false; // 🔒 LOCK cloud saves while fetching
-                    
-                    db.collection('piano_users').doc(syncId).get().then(doc => {
-                        if (doc.exists) {
-                            const data = doc.data();
-                            if (data.pianoRepertoire_v9) setPieces(data.pianoRepertoire_v9);
-                            if (data.piano10k_v1) setTenKData(data.piano10k_v1);
-                            if (data.pianoHistory_v1) setHistory(data.pianoHistory_v1);
-                            if (data.pianoDailyStats_v1) setDailyStats(data.pianoDailyStats_v1);
-                            setSyncStatus("synced");
-                        } else {
-                            setSyncStatus("synced"); // New session created
-                        }
-                    }).catch(err => {
-                        console.error("Cloud Load Error", err);
-                        setSyncStatus("error");
-                    }).finally(() => {
-                        isCloudReady.current = true; // 🔓 UNLOCK cloud saves
-                    });
-                } else if (!syncId) {
-                    setSyncStatus("disconnected");
-                }
-            }, [syncId]);
-
-            const [pieces, setPieces] = useState(() => {
-                const saved = localStorage.getItem('pianoRepertoire_v9'); 
-                return saved ? JSON.parse(saved) : INITIAL_REPERTOIRE;
-            });
-            const [tenKData, setTenKData] = useState(() => {
-                const saved = localStorage.getItem('piano10k_v1');
-                return saved ? JSON.parse(saved) : { hours: "", minutes: "" };
-            });
-            const [repState, setRepState] = useState(() => {
-                // CHANGED DEFAULT: Mode is DOWN, Count starts at 5 (target)
-                return { count: 5, target: 5, mode: 'DOWN' };
-            });
-            const [history, setHistory] = useState(() => {
-                const saved = localStorage.getItem('pianoHistory_v1');
-                return saved ? JSON.parse(saved) : [];
-            });
+            const [pieces, setPieces] = useState(() => JSON.parse(localStorage.getItem('pianoRepertoire_v30') || '[]'));
+            const [tenKData, setTenKData] = useState(() => JSON.parse(localStorage.getItem('piano10k_v2') || '{"hours":"", "minutes":""}'));
             const [dailyStats, setDailyStats] = useState(() => {
-                const saved = JSON.parse(localStorage.getItem('pianoDailyStats_v1') || '{}');
-                const today = new Date().toDateString();
-                if (saved.date !== today) return { date: today, count: 0 };
-                return saved;
+                const saved = JSON.parse(localStorage.getItem('pianoDailyStats_v2') || '{}');
+                return saved.date === new Date().toDateString() ? saved : { date: new Date().toDateString(), count: 0 };
             });
-
+            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('pianoHistory_v2') || '[]'));
+            const [repState, setRepState] = useState({ count: 5, target: 5, mode: 'DOWN' });
             const [currentPiece, setCurrentPiece] = useState(null);
-            const [newPieceTitle, setNewPieceTitle] = useState("");
-            const [isAdding, setIsAdding] = useState(false);
 
-            const sortedPieces = useMemo(() => {
-                return [...pieces].sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
-            }, [pieces]);
-
-            // -- EFFECTS (Updated to use saveData) --
-            useEffect(() => { saveData('pianoRepertoire_v9', pieces); }, [pieces]);
-            useEffect(() => { saveData('pianoHistory_v1', history); }, [history]);
-            useEffect(() => { saveData('pianoDailyStats_v1', dailyStats); }, [dailyStats]);
-            useEffect(() => { saveData('piano10k_v1', tenKData); }, [tenKData]);
-            
-            // Sync ID persistence
+            // Bug Fix 1: Today Counter Interval
             useEffect(() => {
-                if (syncId) localStorage.setItem('pianoSyncId', syncId);
-            }, [syncId]);
+                const interval = setInterval(() => {
+                    const today = new Date().toDateString();
+                    setDailyStats(prev => {
+                        if (prev.date !== today) return { date: today, count: 0 };
+                        return prev;
+                    });
+                }, 60000); // Check every minute
+                return () => clearInterval(interval);
+            }, []);
 
             useEffect(() => {
-                if (isDark) {
-                    document.documentElement.classList.add('dark');
-                    localStorage.setItem('pianoTheme', 'dark');
-                    const metaThemeColor = document.querySelector("meta[name=theme-color]");
-                    if (metaThemeColor) metaThemeColor.setAttribute("content", "#0f172a");
-                } else {
-                    document.documentElement.classList.remove('dark');
-                    localStorage.setItem('pianoTheme', 'light');
-                    const metaThemeColor = document.querySelector("meta[name=theme-color]");
-                    if (metaThemeColor) metaThemeColor.setAttribute("content", "#f8fafc");
-                }
+                localStorage.setItem('pianoRepertoire_v30', JSON.stringify(pieces));
+                localStorage.setItem('piano10k_v2', JSON.stringify(tenKData));
+                localStorage.setItem('pianoDailyStats_v2', JSON.stringify(dailyStats));
+                localStorage.setItem('pianoHistory_v2', JSON.stringify(history));
+                localStorage.setItem('pianoStartDate', startDate);
+            }, [pieces, tenKData, dailyStats, history, startDate]);
+
+            useEffect(() => {
+                document.documentElement.classList.toggle('dark', isDark);
+                localStorage.setItem('pianoTheme', isDark ? 'dark' : 'light');
             }, [isDark]);
 
-            // -- LOGIC --
             const recordPlay = (piece) => {
                 const now = Date.now();
-                const updatedPieces = pieces.map(p => p.id === piece.id ? { ...p, lastPlayed: now, playCount: (p.playCount || 0) + 1 } : p);
-                setPieces(updatedPieces);
-                const newHistoryEntry = { historyId: Date.now(), pieceId: piece.id, title: piece.title, timestamp: now };
-                setHistory([newHistoryEntry, ...history]);
+                setPieces(pieces.map(p => p.id === piece.id ? { ...p, lastPlayed: now, playCount: (p.playCount || 0) + 1 } : p));
+                setHistory([{ historyId: now, pieceId: piece.id, title: piece.title, timestamp: now }, ...history]);
                 setDailyStats(prev => ({ ...prev, count: prev.count + 1 }));
             };
 
             const pickPiece = () => {
                 const now = Date.now();
-                const candidates = pieces.map(p => {
-                    const timeSinceLastPlayed = p.lastPlayed === 0 ? 100000000000 : now - p.lastPlayed;
-                    const randomFactor = 0.5 + Math.random(); 
-                    return { ...p, score: timeSinceLastPlayed * randomFactor };
-                });
-                candidates.sort((a, b) => b.score - a.score);
-                const winner = candidates[0];
+                const candidates = pieces.map(p => ({ ...p, score: (now - (p.lastPlayed || 0)) * (0.5 + Math.random()) }));
+                const winner = candidates.sort((a,b) => b.score - a.score)[0];
                 setCurrentPiece(winner);
-                recordPlay(winner);
-            };
-
-            const stopSession = () => setCurrentPiece(null);
-            const replayPieceFromHistory = (pieceId) => { const piece = pieces.find(p => p.id === pieceId); if (piece) recordPlay(piece); };
-            const deleteHistoryEntry = (historyId, pieceId) => {
-                setHistory(history.filter(h => h.historyId !== historyId));
-                setPieces(pieces.map(p => p.id === pieceId ? { ...p, playCount: Math.max(0, (p.playCount || 0) - 1) } : p));
-                setDailyStats(prev => ({ ...prev, count: Math.max(0, prev.count - 1) }));
-            };
-            const handleStartAdd = () => { setNewPieceTitle(`${pieces.length + 1}. `); setIsAdding(true); };
-            const addNewPiece = () => {
-                if (!newPieceTitle.trim()) return;
-                const newPiece = { id: Date.now(), title: newPieceTitle, lastPlayed: 0, playCount: 0 };
-                setPieces([newPiece, ...pieces]);
-                setNewPieceTitle("");
-                setIsAdding(false);
-            };
-            const deletePiece = (id) => { if(confirm("Delete this piece from your repertoire?")) setPieces(pieces.filter(p => p.id !== id)); };
-            
-            const handleLogout = () => {
-                if (confirm("Are you sure? This will disconnect cloud sync and clear all local data.")) {
-                    setSyncId("");
-                    localStorage.removeItem('pianoSyncId');
-                    // Reset all states to empty
-                    setPieces(INITIAL_REPERTOIRE);
-                    setHistory([]);
-                    setTenKData({ hours: "", minutes: "" });
-                    setDailyStats({ date: new Date().toDateString(), count: 0 });
-                    setSyncStatus("disconnected");
-                }
-            };
-
-            const formatTime = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const cycleMode = () => {
-                if (appMode === 'REPERTOIRE') setAppMode('10K');
-                else if (appMode === '10K') setAppMode('REPS');
-                else setAppMode('REPERTOIRE');
+                if (winner) recordPlay(winner);
             };
 
             return (
-                <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300 safe-area-pt overflow-hidden">
-                    <div className="p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm flex justify-between items-center shrink-0 z-10 relative">
-                        <button onClick={cycleMode} className="flex flex-col items-start justify-center h-10">
-                            <h1 className="text-lg font-bold flex items-center gap-2 text-slate-900 dark:text-white active:opacity-50 transition-opacity">
-                                {appMode === 'REPERTOIRE' && <><IconMusic /> Repertoire <IconChevronDown /></>}
-                                {appMode === '10K' && <><IconClock /> 10,000 Hours <IconChevronDown /></>}
-                                {appMode === 'REPS' && <><IconRepeat /> Repetitions <IconChevronDown /></>}
+                <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 safe-area-pt overflow-hidden">
+                    {/* Header */}
+                    <div className="p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm flex justify-between items-center shrink-0 z-20">
+                        <button onClick={() => setAppMode(appMode === 'REPERTOIRE' ? '10K' : appMode === '10K' ? 'REPS' : 'REPERTOIRE')}>
+                            <h1 className="text-lg font-bold flex items-center gap-2 dark:text-white">
+                                {appMode === 'REPERTOIRE' && <><IconMusic /> Repertoire</>}
+                                {appMode === '10K' && <><IconClock /> 10,000 Hours</>}
+                                {appMode === 'REPS' && <><IconRepeat /> Repetitions</>}
+                                <IconChevronDown />
                             </h1>
                         </button>
-                        {appMode === 'REPERTOIRE' && (
-                            <div className="flex gap-2 bg-slate-100 dark:bg-slate-700 p-1 rounded-full items-center">
-                                <button onClick={() => setView('PRACTICE')} className={`p-2 rounded-full transition-colors ${view === 'PRACTICE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconPlay /></button>
-                                <button onClick={() => setView('REPERTOIRE')} className={`p-2 rounded-full transition-colors ${view === 'REPERTOIRE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconList /></button>
-                                <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconCrown /></button>
-                                <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconClock /></button>
-                                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v28</button>
+                        <div className="flex gap-2 bg-slate-100 dark:bg-slate-700 p-1 rounded-full">
+                            {['PRACTICE', 'REPERTOIRE', 'SETTINGS'].map(v => (
+                                <button key={v} onClick={() => {setView(v); setAppMode('REPERTOIRE')}} className={`p-2 rounded-full ${view === v && appMode === 'REPERTOIRE' ? 'bg-white dark:bg-slate-600 shadow' : 'text-slate-400'}`}>
+                                    {v === 'PRACTICE' && <IconPlay />}
+                                    {v === 'REPERTOIRE' && <IconList />}
+                                    {v === 'SETTINGS' && <IconSettings />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Stats Bar */}
+                    {appMode === 'REPERTOIRE' && (
+                        <div className="bg-white dark:bg-slate-800/50 border-b dark:border-slate-700 py-2 px-4 flex justify-center gap-6 text-[10px] font-bold text-slate-400 tracking-widest shrink-0">
+                            <span>TODAY: <span className="text-indigo-500">{dailyStats.count}</span></span>
+                            <span>TOTAL: <span className="text-indigo-500">{pieces.reduce((s,p) => s + (p.playCount || 0), 0)}</span></span>
+                        </div>
+                    )}
+
+                    {/* Main Content Area */}
+                    <div className="flex-1 overflow-hidden relative">
+                        {appMode === '10K' && <TenThousandView tenKData={tenKData} setTenKData={setTenKData} startDate={startDate} />}
+                        {appMode === 'REPS' && <RepetitionsView repState={repState} setRepState={setRepState} />}
+                        {appMode === 'REPERTOIRE' && view === 'PRACTICE' && (
+                            <div className="h-full flex flex-col items-center justify-center p-6 text-center space-y-8">
+                                {currentPiece ? (
+                                    <div>
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Current Piece</div>
+                                        <div className="text-3xl font-serif dark:text-white mb-4">{currentPiece.title}</div>
+                                        <button onClick={() => setCurrentPiece(null)} className="px-6 py-2 bg-slate-200 dark:bg-slate-700 rounded-full text-xs font-bold text-slate-500 flex items-center gap-2 mx-auto"><IconStop /> Stop</button>
+                                    </div>
+                                ) : <div className="text-slate-300 italic">Ready for a session?</div>}
+                                <button onClick={pickPiece} className="w-full max-w-xs py-6 bg-indigo-600 text-white rounded-2xl text-xl font-bold shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95 transition-all">Next Piece</button>
+                            </div>
+                        )}
+                        {appMode === 'REPERTOIRE' && view === 'REPERTOIRE' && <RepertoireView pieces={pieces} deletePiece={id => setPieces(pieces.filter(p => p.id !== id))} toggleRedList={id => setPieces(pieces.map(p => p.id === id ? {...p, isRedListed: !p.isRedListed} : p))} />}
+                        {appMode === 'REPERTOIRE' && view === 'SETTINGS' && (
+                            <div className="p-6 space-y-6 overflow-y-auto h-full touch-pan-y no-scrollbar">
+                                <div className="text-sm font-bold uppercase text-slate-400">Settings</div>
+                                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium dark:text-white">Dark Mode</span>
+                                        <button onClick={() => setIsDark(!isDark)} className={`w-12 h-6 rounded-full p-1 transition-colors ${isDark ? 'bg-indigo-500' : 'bg-slate-200'}`}>
+                                            <div className={`w-4 h-4 bg-white rounded-full transition-transform ${isDark ? 'translate-x-6' : ''}`} />
+                                        </button>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Start Date</label>
+                                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full bg-slate-100 dark:bg-slate-700 dark:text-white p-2 rounded-lg outline-none" />
+                                    </div>
+                                </div>
+                                <div className="text-center text-[10px] text-slate-400">Piano v29 • 2025.12.31</div>
                             </div>
                         )}
                     </div>
 
-                    {appMode === 'REPERTOIRE' && (
-                        <div className="bg-slate-100 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 py-1.5 px-4 flex justify-center items-center gap-4 text-xs font-mono text-slate-500 dark:text-slate-400 shrink-0 z-0">
-                            <span>Today: <strong className="text-slate-700 dark:text-slate-200">{dailyStats.count}</strong></span>
-                            <span className="text-slate-300 dark:text-slate-600">|</span>
-                            <span>Total: <strong className="text-slate-700 dark:text-slate-200">{pieces.reduce((sum, p) => sum + (p.playCount || 0), 0)}</strong></span>
-                        </div>
-                    )}
-
-                    <div className="flex-1 overflow-hidden relative flex flex-col">
-                        {appMode === '10K' && <TenThousandView tenKData={tenKData} setTenKData={setTenKData} />}
-                        {appMode === 'REPS' && <RepetitionsView repState={repState} setRepState={setRepState} />}
-                        {appMode === 'REPERTOIRE' && (
-                            <>
-                                {view === 'PRACTICE' && <PracticeView currentPiece={currentPiece} pickPiece={pickPiece} stopSession={stopSession} />}
-                                {view === 'REPERTOIRE' && <RepertoireView sortedPieces={pieces} deletePiece={deletePiece} />}
-                                {view === 'LEADERBOARD' && <LeaderboardView sortedPieces={sortedPieces} deletePiece={deletePiece} />}
-                                {view === 'HISTORY' && <HistoryView history={history} replayPieceFromHistory={replayPieceFromHistory} deleteHistoryEntry={deleteHistoryEntry} formatTime={formatTime} />}
-                                {view === 'SETTINGS' && <SettingsView syncStatus={syncStatus} isFirebaseEnabled={isFirebaseEnabled} syncId={syncId} setSyncId={setSyncId} handleLogout={handleLogout} isDark={isDark} setIsDark={setIsDark} />}
-                            </>
-                        )}
-                    </div>
-
-                    {appMode === 'REPERTOIRE' && (view === 'PRACTICE' || view === 'REPERTOIRE' || view === 'LEADERBOARD') && (
-                        <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 z-10 w-full" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                            {isAdding ? (
-                                <div className="space-y-3">
-                                    <input autoFocus value={newPieceTitle} onChange={(e) => setNewPieceTitle(e.target.value)} placeholder="e.g. 27. Rachmaninoff..." className="w-full p-4 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-lg outline-none focus:border-indigo-500" />
-                                    <div className="flex gap-2">
-                                        <button onClick={addNewPiece} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold">Save</button>
-                                        <button onClick={() => setIsAdding(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-semibold">Cancel</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <button onClick={handleStartAdd} className="flex items-center justify-center gap-2 w-full p-4 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors"><IconPlus /> Add New Piece</button>
-                            )}
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                    {/* Add Piece Input */}
+                    {appMode === 'REPERTOIRE' && (view === 'REPERTOIRE' || view === 'PRACTICE') && (
+                        <div className="p-6 bg-white dark:bg-slate-800 border-t dark:border-slate-700 shrink-0">
+                            <button onClick={() => {
+                                const title = prompt("New Piece Title:");
+                                if(title) setPieces([{ id: Date.now(), title, playCount: 0, dateAdded: Date.now() }, ...pieces]);
+                            }} className=“
