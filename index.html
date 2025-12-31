@@ -8,9 +8,9 @@
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Piano v29">
+    <meta name="apple-mobile-web-app-title" content="Piano v31">
     
-    <title>Piano v29</title>
+    <title>Piano v31</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -54,7 +54,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Fix for scrolling bug (Source 20) */
         .scroller-fix {
             -webkit-overflow-scrolling: touch;
             min-height: 0;
@@ -64,6 +63,10 @@
         /* Swipe Animation */
         .swipe-item {
             transition: transform 0.2s ease-out;
+            z-index: 20; /* Ensure content is above delete button */
+        }
+        .delete-layer {
+            z-index: 10;
         }
     </style>
 </head>
@@ -73,12 +76,9 @@
 
     <script type="text/babel">
         // =================================================================
-        // APP VERSION: v29
+        // APP VERSION: v31
         // =================================================================
 
-        // =================================================================
-        // 🔥 PASTE YOUR FIREBASE CONFIG HERE TO ENABLE CLOUD SYNC 🔥
-        // =================================================================
         const userFirebaseConfig = {
             apiKey: "AIzaSyBtbs3d0ifYfTE2H0ly7-rix0wVhbdf25I",
             authDomain: "piano10000-35804.firebaseapp.com",
@@ -88,11 +88,9 @@
             appId: "1:1005611018408:web:c067db2e119cc9f3a5fa9d",
             measurementId: "G-63W95VNLK6"
         };
-        // =================================================================
 
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- FIREBASE SETUP ---
         let db = null;
         let isFirebaseEnabled = false;
 
@@ -128,8 +126,8 @@
         const IconRefresh = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
         const IconCloud = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>;
         const IconLogOut = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
-        const IconHeart = ({ filled }) => <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={filled ? "text-red-500" : "text-slate-300 dark:text-slate-600"}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>;
-        const IconDiamond = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none" className="text-cyan-500"><path d="M12 2L2 12l10 10 10-10L12 2z"></path></svg>;
+        [cite_start]// UPDATED: Red Dot Icon [cite: 2]
+        const IconDot = ({ filled }) => <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={filled ? "text-red-500" : "text-slate-300 dark:text-slate-600"}><circle cx="12" cy="12" r="8"></circle></svg>;
         
         const IconMoon = ({ size = 20, ...props }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -150,13 +148,9 @@
             </svg>
         );
 
-        // --- DATA ---
         const INITIAL_REPERTOIRE = [];
-
-        // --- 10K LOGIC HELPERS ---
         const START_DATE = new Date("2024-02-01"); 
         
-        // Helper to calc weeks between dates (Source 12, 14)
         function weeksSince(dateString) {
             if (!dateString) return null;
             const d = new Date(dateString);
@@ -226,16 +220,13 @@
             };
         }
 
-        // --- SUB-COMPONENTS ---
-
-        const TenThousandView = ({ tenKData, setTenKData, customMilestones, addCustomMilestone }) => {
+        const TenThousandView = ({ tenKData, setTenKData, customMilestones, addCustomMilestone, deleteCustomMilestone, editCustomMilestone }) => {
             const stats = calculate10kStats(tenKData.hours, tenKData.minutes);
             
             const [isAdding, setIsAdding] = useState(false);
-            const [newMilestone, setNewMilestone] = useState({ hours: '', title: '', description: '' });
-            const [expandedMilestoneId, setExpandedMilestoneId] = useState(null); // For flipping/expanding (Source 24)
+            const [editingId, setEditingId] = useState(null); // ID being edited (Source 4)
+            const [formState, setFormState] = useState({ hours: '', title: '', description: '' });
 
-            // Combine and sort milestones (Source 7: corresponding hour)
             const allMilestones = useMemo(() => {
                 const combined = [
                     ...LEGACY_MILESTONES.map(m => ({ ...m, id: `legacy-${m.hours}` })),
@@ -244,15 +235,37 @@
                 return combined.sort((a, b) => b.hours - a.hours);
             }, [customMilestones]);
 
-            const handleSaveMilestone = () => {
-                if (newMilestone.hours && newMilestone.title) {
-                    addCustomMilestone({
-                        ...newMilestone,
-                        dateCreated: Date.now()
-                    });
-                    setNewMilestone({ hours: '', title: '', description: '' });
+            const handleSave = () => {
+                if (formState.hours && formState.title) {
+                    if (editingId) {
+                        editCustomMilestone(editingId, formState);
+                    } else {
+                        addCustomMilestone({ ...formState, dateCreated: Date.now() });
+                    }
+                    setFormState({ hours: '', title: '', description: '' });
                     setIsAdding(false);
+                    setEditingId(null);
                 }
+            };
+            
+            const handleDelete = () => {
+                if (editingId && confirm("Delete this milestone?")) {
+                    deleteCustomMilestone(editingId);
+                    setIsAdding(false);
+                    setEditingId(null);
+                }
+            };
+
+            const openEdit = (milestone) => {
+                setEditingId(milestone.id);
+                setFormState({ hours: milestone.hours, title: milestone.title, description: milestone.description });
+                setIsAdding(true);
+            };
+
+            const openAdd = () => {
+                setEditingId(null);
+                setFormState({ hours: '', title: '', description: '' });
+                setIsAdding(true);
             };
 
             return (
@@ -268,23 +281,25 @@
                         <>
                             <div className="mb-4"><div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-2"><span>MASTERY</span><span>{stats.percentage}%</span></div><div className="h-6 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner relative"><div className="h-full bg-green-500 transition-all duration-1000 ease-out relative" style={{ width: `${stats.percentage}%` }}><div className="absolute inset-0 bg-white/20"></div></div></div><div className="flex justify-between mt-2 text-xs text-slate-400 font-mono"><span>Avg: {stats.avgDisplay}/day</span><span>Day {stats.daysPassed}</span></div></div>
                             
-                            {/* Milestone Add Button (Source 6) */}
                             <div className="flex justify-end mb-2">
-                                <button onClick={() => setIsAdding(!isAdding)} className="text-xs font-bold text-indigo-500 flex items-center gap-1 bg-indigo-50 dark:bg-slate-800 px-3 py-1.5 rounded-full">
+                                <button onClick={openAdd} className="text-xs font-bold text-indigo-500 flex items-center gap-1 bg-indigo-50 dark:bg-slate-800 px-3 py-1.5 rounded-full">
                                     <IconPlus /> Add Milestone
                                 </button>
                             </div>
 
                             {isAdding && (
-                                <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl mb-6 animate-in fade-in slide-in-from-top-2">
-                                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">New Custom Milestone</h3>
-                                    <div className="space-y-3">
-                                        <input type="number" placeholder="At Hours (e.g. 1050)" value={newMilestone.hours} onChange={e => setNewMilestone({...newMilestone, hours: e.target.value})} className="w-full p-2 rounded-lg text-sm outline-none dark:bg-slate-700 dark:text-white" />
-                                        <input type="text" placeholder="Title (e.g. New Piano)" value={newMilestone.title} onChange={e => setNewMilestone({...newMilestone, title: e.target.value})} className="w-full p-2 rounded-lg text-sm outline-none dark:bg-slate-700 dark:text-white" />
-                                        <textarea placeholder="Description / Memory (Optional)" value={newMilestone.description} onChange={e => setNewMilestone({...newMilestone, description: e.target.value})} className="w-full p-2 rounded-lg text-sm outline-none dark:bg-slate-700 dark:text-white h-20" />
-                                        <div className="flex gap-2">
-                                            <button onClick={handleSaveMilestone} className="flex-1 bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold">Save</button>
-                                            <button onClick={() => setIsAdding(false)} className="flex-1 bg-slate-200 text-slate-600 py-2 rounded-lg text-sm font-bold">Cancel</button>
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200">
+                                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">{editingId ? 'Edit Milestone' : 'New Milestone'}</h3>
+                                        <div className="space-y-3">
+                                            <input type="number" placeholder="At Hours (e.g. 1050)" value={formState.hours} onChange={e => setFormState({...formState, hours: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white" />
+                                            <input type="text" placeholder="Title (e.g. New Piano)" value={formState.title} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white" />
+                                            <textarea placeholder="Description..." value={formState.description} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white h-24" />
+                                            <div className="flex gap-2 pt-2">
+                                                <button onClick={handleSave} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
+                                                {editingId && <button onClick={handleDelete} className="px-4 bg-red-100 text-red-500 py-3 rounded-xl text-sm font-bold"><IconTrash/></button>}
+                                                <button onClick={() => setIsAdding(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -293,7 +308,6 @@
                             <div className="relative mt-6 pb-12">
                                 <div className="absolute left-8 top-8 bottom-10 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0"></div>
                                 
-                                {/* Estimated Finish Card */}
                                 <div className="relative z-10 mb-8 pl-16">
                                     <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-50 dark:ring-slate-900"></div>
                                     <div className="border border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-3 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
@@ -308,38 +322,35 @@
                                     </div>
                                 </div>
 
-                                {/* Next Goal */}
                                 <div className="relative z-10 mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-yellow-400 ring-4 ring-yellow-400/20 shadow-lg shadow-yellow-400/50"></div><div className="bg-gradient-to-r from-yellow-50 to-white dark:from-slate-800 dark:to-slate-800 border border-yellow-200 dark:border-yellow-900/30 rounded-xl p-4 shadow-sm"><div className="flex justify-between items-center"><div><div className="text-yellow-600 dark:text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><IconStar /> Next Goal</div><div className="text-xl font-bold text-slate-900 dark:text-white">{stats.nextMilestone} Hours</div></div><div className="text-right"><div className="text-2xl font-bold text-yellow-500">{stats.daysToMilestone}</div><div className="text-[10px] text-slate-400 uppercase font-bold">Days Left</div></div></div></div></div>
                                 
-                                {/* Current Hours */}
                                 <div className="relative z-10 mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-green-500 ring-4 ring-green-500/20 animate-pulse"></div><div className="bg-white dark:bg-slate-800 border border-green-200 dark:border-green-900/50 rounded-xl p-4 shadow-sm"><div className="flex justify-between items-center mb-1"><div className="text-green-600 dark:text-green-400 text-xs font-bold uppercase tracking-wider">Current</div><div className="text-xs text-slate-400">Today</div></div><div className="text-2xl font-bold text-slate-900 dark:text-white">{Math.floor(stats.totalPlayed)} <span className="text-sm font-normal text-slate-500">Hours</span></div></div></div>
                                 
-                                {/* Combined Milestones (Legacy + Custom) */}
                                 {allMilestones.map((milestone, idx) => {
                                     const isCustom = milestone.type === 'custom';
-                                    const isExpanded = expandedMilestoneId === milestone.id;
                                     return (
-                                        <div key={milestone.id || idx} onClick={() => isCustom && setExpandedMilestoneId(isExpanded ? null : milestone.id)} className={`relative z-10 transition-all mb-8 pl-16 ${isCustom ? 'cursor-pointer' : 'opacity-60 hover:opacity-100'}`}>
-                                            {/* Milestone Dot - Custom are Diamonds (Source 7) */}
-                                            <div className={`absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 flex items-center justify-center bg-white dark:bg-slate-900 z-10`}>
-                                                {isCustom ? <div className="text-cyan-500 scale-150"><IconDiamond /></div> : <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div>}
-                                            </div>
+                                        <div 
+                                            key={milestone.id || idx} 
+                                            onClick={() => isCustom && openEdit(milestone)} 
+                                            className={`relative z-10 transition-all mb-8 pl-16 ${isCustom ? 'cursor-pointer' : 'opacity-60'}`}
+                                        >
+                                            {/* Style Match: All use Dots (Source 4) */}
+                                            <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div>
                                             
-                                            <div className={`flex-1 ${isCustom ? 'bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800 p-3 rounded-xl' : ''}`}>
+                                            <div className="flex-1">
                                                 <div className="flex justify-between items-baseline">
-                                                    <span className={`text-lg font-bold ${isCustom ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                    <span className={`text-lg font-bold ${isCustom ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>
                                                         {isCustom ? milestone.title : `${milestone.hours} Hours`}
                                                     </span>
-                                                    {isCustom && <span className="text-xs font-bold text-cyan-500">{milestone.hours} h</span>}
-                                                    {!isCustom && <span className="text-xs text-slate-400">{milestone.avg}/day</span>}
+                                                    {isCustom ? <span className="text-xs font-bold text-indigo-500">{milestone.hours} h</span> : <span className="text-xs text-slate-400">{milestone.avg}/day</span>}
                                                 </div>
                                                 <div className="text-xs text-slate-400 mt-0.5">
                                                     {isCustom ? 'Custom Event' : `${calculateDaysAgo(milestone.date)} days ago`}
                                                 </div>
                                                 
-                                                {/* Expanded Details (Source 21-25) */}
-                                                {isExpanded && milestone.description && (
-                                                    <div className="mt-2 pt-2 border-t border-cyan-200 dark:border-cyan-800 text-sm text-slate-600 dark:text-slate-300 animate-in fade-in">
+                                                {/* Expanded Details Always Visible if present */}
+                                                {milestone.description && (
+                                                    <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                                                         {milestone.description}
                                                     </div>
                                                 )}
@@ -395,18 +406,34 @@
                         <div className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-500 dark:text-slate-400">Total Plays: {currentPiece.playCount}</div> 
                     </div>
                 ) : <div className="text-slate-400 dark:text-slate-500 italic">Tap below to pick a piece</div>}
-                <div className="flex flex-col gap-4 w-full max-w-sm"><button onClick={pickPiece} className="bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-500 dark:active:bg-indigo-600 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all transform active:scale-95 w-full">{currentPiece ? "Next Piece" : "Start Session"}</button>{currentPiece && <button onClick={stopSession} className="flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-4 rounded-xl active:scale-95 transition-all"><IconStop /> Stop Session</button>}</div>
+                
+                <div className="flex flex-col gap-4 w-full max-w-sm">
+                    {/* Main Start Button */}
+                    <button onClick={() => pickPiece(false)} className="bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-500 dark:active:bg-indigo-600 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all transform active:scale-95 w-full">
+                        {currentPiece ? "Next Piece" : "Start Session"}
+                    </button>
+
+                    {/* Red List Button (Source 3) */}
+                    {!currentPiece && (
+                        <button onClick={() => pickPiece(true)} className="bg-red-500 active:bg-red-600 text-white text-sm font-bold py-3 px-6 rounded-xl shadow-md transition-all transform active:scale-95 w-full">
+                            Red List
+                        </button>
+                    )}
+
+                    {currentPiece && (
+                        <button onClick={stopSession} className="flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-4 rounded-xl active:scale-95 transition-all">
+                            <IconStop /> Stop Session
+                        </button>
+                    )}
+                </div>
             </div>
         );
 
-        // --- UPDATED Repertoire View (Red List, Metadata, Swipe) ---
         const RepertoireView = ({ sortedPieces, deletePiece, toggleRedList, isRedListMode, toggleRedPiece }) => {
-            // Filter logic for Red List (Source 4)
             const displayedPieces = isRedListMode 
                 ? sortedPieces.filter(p => p.isRed) 
                 : sortedPieces;
             
-            // Swipe Logic State
             const [swipedId, setSwipedId] = useState(null);
             const touchStartX = useRef(null);
 
@@ -419,9 +446,9 @@
                 const endX = e.changedTouches[0].clientX;
                 const diff = touchStartX.current - endX;
                 
-                if (diff > 50) { // Swiped Left (Source 17)
+                if (diff > 50) { 
                     setSwipedId(id);
-                } else if (diff < -50) { // Swiped Right (Close)
+                } else if (diff < -50) {
                     if (swipedId === id) setSwipedId(null);
                 }
                 touchStartX.current = null;
@@ -431,27 +458,26 @@
                 <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     <div className="flex items-center justify-between mb-4 px-2">
                         <div className="text-sm font-bold uppercase tracking-wider text-slate-400">My Repertoire</div>
-                        {/* Red List Toggle (Source 2, 3) */}
                         <button onClick={toggleRedList} className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border transition-all ${isRedListMode ? 'bg-red-500 text-white border-red-500' : 'bg-transparent text-slate-400 border-slate-300 dark:border-slate-600'}`}>
-                            <IconHeart filled={true} /> {isRedListMode ? 'Red List Active' : 'Show Red List'}
+                            <IconDot filled={true} /> {isRedListMode ? 'Red List Active' : 'Show Red List'}
                         </button>
                     </div>
 
                     <div className="space-y-3 pb-8">
                         {[...displayedPieces].sort((a,b) => b.id - a.id).map((piece) => {
                             const isSwiped = swipedId === piece.id;
-                            const weeksAgo = weeksSince(piece.startDate); // (Source 12)
+                            const weeksAgo = weeksSince(piece.startDate); 
 
                             return (
-                                <div key={piece.id} className="relative overflow-hidden rounded-xl">
-                                    {/* Delete Layer (Behind) (Source 17) */}
-                                    <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-6">
+                                <div key={piece.id} className="relative overflow-hidden rounded-xl bg-red-500">
+                                    {/* Delete Layer: Fixed Pixels Peeking (Source 1) by putting button strictly right */}
+                                    <div className="absolute right-0 top-0 bottom-0 w-32 flex items-center justify-center delete-layer">
                                         <button onClick={() => deletePiece(piece.id)} className="text-white font-bold flex items-center gap-1">
                                             <IconTrash /> Delete
                                         </button>
                                     </div>
                                     
-                                    {/* Content Layer (Front) */}
+                                    {/* Content Layer */}
                                     <div 
                                         className={`relative bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm p-4 flex items-center justify-between swipe-item ${isSwiped ? '-translate-x-32' : 'translate-x-0'}`}
                                         onTouchStart={(e) => handleTouchStart(e, piece.id)}
@@ -459,16 +485,15 @@
                                     >
                                         <div className="flex-1 pr-4 pl-2">
                                             <h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3>
-                                            {/* Metadata Display (Source 9, 10, 12, 16) */}
                                             {weeksAgo && (
                                                 <div className="text-[10px] text-slate-400 mt-1 font-mono">
                                                     Started: {new Date(piece.startDate).toLocaleDateString()} • {weeksAgo}
                                                 </div>
                                             )}
                                         </div>
-                                        {/* Red Button (Source 5) */}
+                                        {/* Red Dot Button (Source 2) */}
                                         <button onClick={(e) => { e.stopPropagation(); toggleRedPiece(piece.id); }} className="p-2 active:scale-90 transition-transform">
-                                            <IconHeart filled={piece.isRed} />
+                                            <IconDot filled={piece.isRed} />
                                         </button>
                                     </div>
                                 </div>
@@ -504,7 +529,6 @@
                 <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                       <div className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 px-2">Settings</div>
 
-                    {/* CLOUD SYNC SECTION */}
                     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-6">
                         <div className="flex items-center justify-between mb-4">
                             <div className="text-sm font-bold text-slate-900 dark:text-white">Cloud Sync</div>
@@ -541,7 +565,6 @@
                         )}
                     </div>
 
-                    {/* APPEARANCE SECTION */}
                     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-6 flex justify-between items-center">
                         <div className="text-sm font-bold text-slate-900 dark:text-white">Dark Mode</div>
                         <button onClick={() => setIsDark(!isDark)} className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 flex items-center ${isDark ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}>
@@ -551,7 +574,7 @@
                         </button>
                     </div>
 
-                    <div className="px-2 text-center text-xs text-slate-400">Piano v29<br/>Build: 01.01.2026</div>
+                    <div className="px-2 text-center text-xs text-slate-400">Piano v31<br/>Build: 01.01.2026</div>
                 </div>
             );
         };
@@ -566,8 +589,8 @@
                             <div className="flex flex-col"><span className="text-xs text-slate-400 font-mono">{formatTime(entry.timestamp)}</span><span className="font-medium text-slate-900 dark:text-white text-sm line-clamp-1">{entry.title}</span></div>
                             <div className="flex items-center gap-2">
                                 <button onClick={() => replayPieceFromHistory(entry.pieceId)} className="p-2 text-indigo-400 active:text-indigo-600 dark:text-indigo-400 dark:active:text-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg"><IconPlus /></button>
-                                {/* Immediate Delete (Source 18, 19) */}
-                                <button onClick={() => deleteHistoryEntry(entry.historyId, entry.pieceId)} className="p-2 text-slate-300 hover:text-red-500 active:text-red-600 rounded-lg"><IconTrash /></button>
+                                {/* Trash Icon Fix: No Red Hover (Source 6) */}
+                                <button onClick={() => deleteHistoryEntry(entry.historyId, entry.pieceId)} className="p-2 text-slate-300 active:text-slate-500 rounded-lg"><IconTrash /></button>
                             </div>
                         </div>
                     ))}
@@ -578,7 +601,6 @@
         function App() {
             const [appMode, setAppMode] = useState('REPERTOIRE'); 
             const [view, setView] = useState('PRACTICE'); 
-            // Default to Dark Mode (Source 1)
             const [isDark, setIsDark] = useState(() => {
                 const stored = localStorage.getItem('pianoTheme');
                 return stored ? stored === 'dark' : true; 
@@ -605,7 +627,6 @@
                 }
             };
 
-            // Initial Loader
             useEffect(() => {
                 if (isFirebaseEnabled && syncId && db) {
                     setSyncStatus("syncing");
@@ -617,7 +638,7 @@
                             if (data.piano10k_v1) setTenKData(data.piano10k_v1);
                             if (data.pianoHistory_v1) setHistory(data.pianoHistory_v1);
                             if (data.pianoDailyStats_v1) setDailyStats(data.pianoDailyStats_v1);
-                            if (data.pianoCustomMilestones_v1) setCustomMilestones(data.pianoCustomMilestones_v1); // Load Milestones
+                            if (data.pianoCustomMilestones_v1) setCustomMilestones(data.pianoCustomMilestones_v1);
                             setSyncStatus("synced");
                         } else {
                             setSyncStatus("synced");
@@ -641,7 +662,6 @@
                 const saved = localStorage.getItem('piano10k_v1');
                 return saved ? JSON.parse(saved) : { hours: "", minutes: "" };
             });
-            // Custom Milestones State (Source 6)
             const [customMilestones, setCustomMilestones] = useState(() => {
                 const saved = localStorage.getItem('pianoCustomMilestones_v1');
                 return saved ? JSON.parse(saved) : [];
@@ -662,19 +682,16 @@
 
             const [currentPiece, setCurrentPiece] = useState(null);
             
-            // Add Piece States
             const [newPieceTitle, setNewPieceTitle] = useState("");
-            const [newPieceDate, setNewPieceDate] = useState(""); // Start Date Input
+            const [newPieceDate, setNewPieceDate] = useState("");
             const [isAdding, setIsAdding] = useState(false);
             
-            // Red List State
             const [isRedListMode, setIsRedListMode] = useState(false);
 
             const sortedPieces = useMemo(() => {
                 return [...pieces].sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
             }, [pieces]);
 
-            // -- EFFECTS --
             useEffect(() => { saveData('pianoRepertoire_v9', pieces); }, [pieces]);
             useEffect(() => { saveData('pianoHistory_v1', history); }, [history]);
             useEffect(() => { saveData('pianoDailyStats_v1', dailyStats); }, [dailyStats]);
@@ -699,20 +716,25 @@
                 }
             }, [isDark]);
 
-            // -- LOGIC --
             const recordPlay = (piece) => {
                 const now = Date.now();
+                // Update Piece Last Played & Count
                 const updatedPieces = pieces.map(p => p.id === piece.id ? { ...p, lastPlayed: now, playCount: (p.playCount || 0) + 1 } : p);
                 setPieces(updatedPieces);
+                // Update History
                 const newHistoryEntry = { historyId: Date.now(), pieceId: piece.id, title: piece.title, timestamp: now };
                 setHistory([newHistoryEntry, ...history]);
-                setDailyStats(prev => ({ ...prev, count: prev.count + 1 }));
+                [cite_start]// Update Daily Stats logic [cite: 5]
+                const todayStr = new Date().toDateString();
+                setDailyStats(prev => {
+                    if (prev.date !== todayStr) return { date: todayStr, count: 1 };
+                    return { ...prev, count: prev.count + 1 };
+                });
             };
 
-            const pickPiece = () => {
-                // Filter if in Red List mode? Probably not for random pick, but let's respect it if user is focused.
-                const pool = isRedListMode ? pieces.filter(p => p.isRed) : pieces;
-                if (pool.length === 0) return alert("No pieces available to pick!");
+            const pickPiece = (filterRed) => {
+                const pool = filterRed ? pieces.filter(p => p.isRed) : pieces;
+                if (pool.length === 0) return alert(filterRed ? "Red List is empty!" : "No pieces available!");
 
                 const now = Date.now();
                 const candidates = pool.map(p => {
@@ -727,16 +749,29 @@
             };
 
             const stopSession = () => setCurrentPiece(null);
-            const replayPieceFromHistory = (pieceId) => { const piece = pieces.find(p => p.id === pieceId); if (piece) recordPlay(piece); };
             
+            const replayPieceFromHistory = (pieceId) => { 
+                const piece = pieces.find(p => p.id === pieceId); 
+                if (piece) recordPlay(piece); 
+            };
+            
+            [cite_start]// Stats Fix Logic [cite: 5]
             const deleteHistoryEntry = (historyId, pieceId) => {
+                // Find entry to check date
+                const entry = history.find(h => h.historyId === historyId);
+                if (entry) {
+                    const isToday = new Date(entry.timestamp).toDateString() === new Date().toDateString();
+                    if (isToday) {
+                        setDailyStats(prev => ({ ...prev, count: Math.max(0, prev.count - 1) }));
+                    }
+                }
                 setHistory(history.filter(h => h.historyId !== historyId));
-                // Optional: decrease play count logic removed to keep it simple as per "just delete that entry"
+                // Decrement Total Play Count of piece
+                setPieces(pieces.map(p => p.id === pieceId ? { ...p, playCount: Math.max(0, (p.playCount || 0) - 1) } : p));
             };
             
             const handleStartAdd = () => { 
                 setNewPieceTitle(`${pieces.length + 1}. `); 
-                // Default date to today
                 const today = new Date().toISOString().split('T')[0];
                 setNewPieceDate(today);
                 setIsAdding(true); 
@@ -747,7 +782,7 @@
                 const newPiece = { 
                     id: Date.now(), 
                     title: newPieceTitle, 
-                    startDate: newPieceDate, // Store start date (Source 10)
+                    startDate: newPieceDate,
                     lastPlayed: 0, 
                     playCount: 0,
                     isRed: false 
@@ -767,6 +802,12 @@
 
             const addCustomMilestone = (milestone) => {
                 setCustomMilestones([...customMilestones, { ...milestone, id: Date.now() }]);
+            };
+            const deleteCustomMilestone = (id) => {
+                setCustomMilestones(customMilestones.filter(m => m.id !== id));
+            };
+            const editCustomMilestone = (id, updated) => {
+                setCustomMilestones(customMilestones.map(m => m.id === id ? { ...m, ...updated } : m));
             };
             
             const handleLogout = () => {
@@ -805,7 +846,7 @@
                                 <button onClick={() => setView('REPERTOIRE')} className={`p-2 rounded-full transition-colors ${view === 'REPERTOIRE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconList /></button>
                                 <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconCrown /></button>
                                 <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconClock /></button>
-                                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v29</button>
+                                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v31</button>
                             </div>
                         )}
                     </div>
@@ -819,7 +860,7 @@
                     )}
 
                     <div className="flex-1 overflow-hidden relative flex flex-col">
-                        {appMode === '10K' && <TenThousandView tenKData={tenKData} setTenKData={setTenKData} customMilestones={customMilestones} addCustomMilestone={addCustomMilestone} />}
+                        {appMode === '10K' && <TenThousandView tenKData={tenKData} setTenKData={setTenKData} customMilestones={customMilestones} addCustomMilestone={addCustomMilestone} deleteCustomMilestone={deleteCustomMilestone} editCustomMilestone={editCustomMilestone} />}
                         {appMode === 'REPS' && <RepetitionsView repState={repState} setRepState={setRepState} />}
                         {appMode === 'REPERTOIRE' && (
                             <>
@@ -837,7 +878,6 @@
                             {isAdding ? (
                                 <div className="space-y-3">
                                     <input autoFocus value={newPieceTitle} onChange={(e) => setNewPieceTitle(e.target.value)} placeholder="e.g. 27. Rachmaninoff..." className="w-full p-4 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-lg outline-none focus:border-indigo-500" />
-                                    {/* Date Input for Metadata (Source 16) */}
                                     <div className="flex gap-2 items-center">
                                         <label className="text-xs font-bold text-slate-500">Started:</label>
                                         <input type="date" value={newPieceDate} onChange={(e) => setNewPieceDate(e.target.value)} className="flex-1 p-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm outline-none" />
