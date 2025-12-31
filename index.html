@@ -29,9 +29,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-    }
+    tailwind.config = { darkMode: 'class' };
   </script>
 
   <style>
@@ -58,28 +56,12 @@
       display: flex;
       flex-direction: column;
     }
-    .safe-area-pt {
-      padding-top: env(safe-area-inset-top);
-    }
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    .scroller-fix {
-      -webkit-overflow-scrolling: touch;
-      min-height: 0;
-      flex: 1 1 0%;
-    }
-    .swipe-item {
-      transition: transform 0.2s ease-out;
-      z-index: 20;
-    }
-    .swipe-actions {
-      z-index: 10;
-    }
+    .safe-area-pt { padding-top: env(safe-area-inset-top); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .scroller-fix { -webkit-overflow-scrolling: touch; min-height: 0; flex: 1 1 0%; }
+    .swipe-item { transition: transform 0.2s ease-out; z-index: 20; }
+    .swipe-actions { z-index: 10; }
   </style>
 </head>
 
@@ -113,9 +95,7 @@
           : (typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null);
 
       if (configToUse) {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(configToUse);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(configToUse);
         db = firebase.firestore();
         isFirebaseEnabled = true;
         console.log("Firebase initialized (Firestore only)");
@@ -210,8 +190,10 @@
       const daysPassed = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
       const totalPlayed = parseFloat(totalHours || 0) + (parseFloat(totalMinutes || 0) / 60);
       if (daysPassed <= 0 || totalPlayed === 0) return null;
+
       const avgHoursPerDay = totalPlayed / daysPassed;
       const percentage = Math.min(100, (totalPlayed / 10000) * 100).toFixed(2);
+
       const remainingHours = 10000 - totalPlayed;
       const daysRemaining = remainingHours / avgHoursPerDay;
       const finishDate = new Date();
@@ -276,8 +258,8 @@
       const [expandedId, setExpandedId] = useState(null);
 
       const [isModalOpen, setIsModalOpen] = useState(false);
-      const [modalStep, setModalStep] = useState('CHOOSE'); // CHOOSE | FORM
-      const [modalType, setModalType] = useState(null); // INTERVAL | CUSTOM | EDIT_DESC
+      const [modalStep, setModalStep] = useState('CHOOSE');
+      const [modalType, setModalType] = useState(null);
       const [editingMilestone, setEditingMilestone] = useState(null);
 
       const [formState, setFormState] = useState({
@@ -331,9 +313,7 @@
         return [...legacy, ...interval, ...custom].sort((a, b) => Number(b.hours) - Number(a.hours));
       }, [customMilestones, intervalMilestones, legacyMeta]);
 
-      const toggleExpand = (id) => {
-        setExpandedId(expandedId === id ? null : id);
-      };
+      const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id);
 
       const openAdd = () => {
         setIsModalOpen(true);
@@ -408,25 +388,16 @@
       const saveNewMilestone = () => {
         if (modalType === 'INTERVAL') {
           if (!formState.date || !formState.avg) return;
-
           setIntervalMilestones(prev => ([
             ...prev,
-            {
-              id: Date.now(),
-              date: formState.date,
-              hours: Number(formState.hours),
-              avg: formState.avg,
-              description: formState.description || ""
-            }
+            { id: Date.now(), date: formState.date, hours: Number(formState.hours), avg: formState.avg, description: formState.description || "" }
           ]));
-
           setIsModalOpen(false);
           return;
         }
 
         if (modalType === 'CUSTOM') {
           if (!formState.date || !formState.hours || !formState.title) return;
-
           addCustomMilestone({
             id: Date.now(),
             date: formState.date,
@@ -435,9 +406,7 @@
             description: formState.description || "",
             dateCreated: Date.now()
           });
-
           setIsModalOpen(false);
-          return;
         }
       };
 
@@ -446,10 +415,7 @@
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700 z-20 relative">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
-              <button
-                onClick={openAdd}
-                className="text-xs font-bold text-indigo-500 flex items-center gap-1 bg-indigo-50 dark:bg-slate-800 px-3 py-1.5 rounded-full"
-              >
+              <button onClick={openAdd} className="text-xs font-bold text-indigo-500 flex items-center gap-1 bg-indigo-50 dark:bg-slate-800 px-3 py-1.5 rounded-full">
                 <IconPlus /> Add Milestone
               </button>
             </div>
@@ -482,6 +448,7 @@
           {isModalOpen && (
             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
               <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200">
+
                 {modalStep === 'CHOOSE' && (
                   <>
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add Milestone</h3>
@@ -610,19 +577,9 @@
                       </div>
 
                       <div className="flex gap-2 pt-1">
+                        <button onClick={saveNewMilestone} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
                         <button
-                          onClick={saveNewMilestone}
-                          className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold"
-                        >
-                          Save
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setModalStep('CHOOSE');
-                            setModalType(null);
-                            setEditingMilestone(null);
-                          }}
+                          onClick={() => { setModalStep('CHOOSE'); setModalType(null); setEditingMilestone(null); }}
                           className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold"
                         >
                           Back
@@ -635,9 +592,7 @@
                 {modalStep === 'FORM' && modalType === 'EDIT_DESC' && editingMilestone && (
                   <>
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Edit Description</h3>
-                    <div className="text-xs text-slate-400 mb-4">
-                      {editingMilestone.title || `${editingMilestone.hours} Hours`}
-                    </div>
+                    <div className="text-xs text-slate-400 mb-4">{editingMilestone.title || `${editingMilestone.hours} Hours`}</div>
 
                     <div className="space-y-3">
                       <textarea
@@ -648,28 +603,16 @@
                       />
 
                       <div className="flex gap-2">
-                        <button
-                          onClick={saveEditDescription}
-                          className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold"
-                        >
-                          Save
-                        </button>
+                        <button onClick={saveEditDescription} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
 
                         {(editingMilestone.type === 'custom' || editingMilestone.type === 'interval') && (
-                          <button
-                            onClick={deleteEditingMilestone}
-                            className="px-4 bg-red-100 text-red-500 py-3 rounded-xl text-sm font-bold"
-                            title="Delete"
-                          >
+                          <button onClick={deleteEditingMilestone} className="px-4 bg-red-100 text-red-500 py-3 rounded-xl text-sm font-bold" title="Delete">
                             <IconTrash />
                           </button>
                         )}
 
                         <button
-                          onClick={() => {
-                            setIsModalOpen(false);
-                            setEditingMilestone(null);
-                          }}
+                          onClick={() => { setIsModalOpen(false); setEditingMilestone(null); }}
                           className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold"
                         >
                           Cancel
@@ -678,6 +621,7 @@
                     </div>
                   </>
                 )}
+
               </div>
             </div>
           )}
@@ -765,11 +709,10 @@
                             {milestone.title}
                           </span>
 
-                          {milestone.type === 'custom' ? (
-                            <span className="text-xs text-slate-400">{milestone.hours} h</span>
-                          ) : (
-                            <span className="text-xs text-slate-400">{milestone.avg}/day</span>
-                          )}
+                          {milestone.type === 'custom'
+                            ? <span className="text-xs text-slate-400">{milestone.hours} h</span>
+                            : <span className="text-xs text-slate-400">{milestone.avg}/day</span>
+                          }
                         </div>
 
                         <div className="text-xs text-slate-400 mt-0.5">
@@ -781,10 +724,7 @@
                             <div className="flex-1 mr-2 whitespace-pre-wrap">
                               {milestone.description || <span className="text-slate-400 italic">No description...</span>}
                             </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); openEdit(milestone); }}
-                              className="text-slate-400 hover:text-indigo-500 p-1"
-                            >
+                            <button onClick={(e) => { e.stopPropagation(); openEdit(milestone); }} className="text-slate-400 hover:text-indigo-500 p-1">
                               <IconEdit />
                             </button>
                           </div>
@@ -804,12 +744,12 @@
                       <div className="text-xs text-slate-400">Feb 1, 2024</div>
                     </div>
 
-                    <!-- one-line, same font as milestone avg/day -->
                     <div className="text-xs text-slate-400">
                       {journeyAge.yearsFormatted} {journeyAge.monthsFormatted}
                     </div>
                   </div>
                 </div>
+
               </div>
             </>
           ) : (
@@ -851,7 +791,7 @@
         updateCount(count > 0 ? count - 1 : 0);
       };
 
-      const handleReset = () => { updateCount(parseInt(target) || 5); };
+      const handleReset = () => updateCount(parseInt(target) || 5);
       const handleTargetChange = (e) => {
         const val = parseInt(e.target.value) || 0;
         setRepState(prev => ({ ...prev, target: val, count: val }));
@@ -889,9 +829,7 @@
             <div className="text-3xl font-serif font-medium text-slate-900 dark:text-white leading-tight mb-8">{currentPiece.title}</div>
             <div className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-500 dark:text-slate-400">Total Plays: {currentPiece.playCount}</div>
           </div>
-        ) : (
-          <div className="text-slate-400 dark:text-slate-500 italic">Tap below to pick a piece</div>
-        )}
+        ) : <div className="text-slate-400 dark:text-slate-500 italic">Tap below to pick a piece</div>}
 
         <div className="flex flex-col gap-4 w-full max-w-sm">
           <button onClick={() => pickPiece(false)} className="bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-500 dark:active:bg-indigo-600 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all transform active:scale-95 w-full">
@@ -914,29 +852,23 @@
     );
 
     const RepertoireView = ({ sortedPieces, deletePiece, editPiece, toggleRedList, isRedListMode, toggleRedPiece }) => {
-      const displayedPieces = isRedListMode
-        ? sortedPieces.filter(p => p.isRed)
-        : sortedPieces;
+      const displayedPieces = isRedListMode ? sortedPieces.filter(p => p.isRed) : sortedPieces;
 
       const [swipedId, setSwipedId] = useState(null);
       const [editingId, setEditingId] = useState(null);
       const [editForm, setEditForm] = useState({ title: '', date: '' });
       const touchStartX = useRef(null);
 
-      const handleTouchStart = (e, id) => {
-        touchStartX.current = e.touches[0].clientX;
-      };
+      const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
 
       const handleTouchEnd = (e, id) => {
         if (!touchStartX.current) return;
         const endX = e.changedTouches[0].clientX;
         const diff = touchStartX.current - endX;
 
-        if (diff > 50) {
-          setSwipedId(id);
-        } else if (diff < -50) {
-          if (swipedId === id) setSwipedId(null);
-        }
+        if (diff > 50) setSwipedId(id);
+        else if (diff < -50) { if (swipedId === id) setSwipedId(null); }
+
         touchStartX.current = null;
       };
 
@@ -953,9 +885,7 @@
         }
       };
 
-      const clearDate = () => {
-        setEditForm({ ...editForm, date: '' });
-      };
+      const clearDate = () => setEditForm({ ...editForm, date: '' });
 
       return (
         <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
@@ -1003,7 +933,7 @@
 
                   <div
                     className="absolute inset-0 z-10 bg-white dark:bg-slate-800 shadow-sm p-4 flex items-center justify-between swipe-item"
-                    onTouchStart={(e) => handleTouchStart(e, piece.id)}
+                    onTouchStart={handleTouchStart}
                     onTouchEnd={(e) => handleTouchEnd(e, piece.id)}
                     style={{
                       backfaceVisibility: 'hidden',
@@ -1106,10 +1036,7 @@
 
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-6 flex justify-between items-center">
             <div className="text-sm font-bold text-slate-900 dark:text-white">Dark Mode</div>
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 flex items-center ${isDark ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
-            >
+            <button onClick={() => setIsDark(!isDark)} className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 flex items-center ${isDark ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}>
               <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-800">
                 {isDark ? <IconMoon size={12} /> : <IconSun size={12} />}
               </div>
@@ -1135,12 +1062,8 @@
                 <span className="font-medium text-slate-900 dark:text-white text-sm line-clamp-1">{entry.title}</span>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => replayPieceFromHistory(entry.pieceId)} className="p-2 text-indigo-400 active:text-indigo-600 dark:text-indigo-400 dark:active:text-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
-                  <IconPlus />
-                </button>
-                <button onClick={() => deleteHistoryEntry(entry.historyId, entry.pieceId)} className="p-2 text-slate-300 active:text-slate-500 rounded-lg">
-                  <IconTrash />
-                </button>
+                <button onClick={() => replayPieceFromHistory(entry.pieceId)} className="p-2 text-indigo-400 active:text-indigo-600 dark:text-indigo-400 dark:active:text-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg"><IconPlus /></button>
+                <button onClick={() => deleteHistoryEntry(entry.historyId, entry.pieceId)} className="p-2 text-slate-300 active:text-slate-500 rounded-lg"><IconTrash /></button>
               </div>
             </div>
           ))}
@@ -1232,9 +1155,7 @@
         return saved ? JSON.parse(saved) : {};
       });
 
-      const [repState, setRepState] = useState(() => {
-        return { count: 5, target: 5, mode: 'DOWN' };
-      });
+      const [repState, setRepState] = useState(() => ({ count: 5, target: 5, mode: 'DOWN' }));
 
       const [history, setHistory] = useState(() => {
         const saved = localStorage.getItem('pianoHistory_v1');
@@ -1256,9 +1177,7 @@
 
       const [isRedListMode, setIsRedListMode] = useState(false);
 
-      const sortedPieces = useMemo(() => {
-        return [...pieces].sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
-      }, [pieces]);
+      const sortedPieces = useMemo(() => [...pieces].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)), [pieces]);
 
       useEffect(() => { saveData('pianoRepertoire_v9', pieces); }, [pieces]);
       useEffect(() => { saveData('pianoHistory_v1', history); }, [history]);
@@ -1268,9 +1187,7 @@
       useEffect(() => { saveData('pianoLegacyMeta_v1', legacyMeta); }, [legacyMeta]);
       useEffect(() => { saveData('pianoIntervalMilestones_v1', intervalMilestones); }, [intervalMilestones]);
 
-      useEffect(() => {
-        if (syncId) localStorage.setItem('pianoSyncId', syncId);
-      }, [syncId]);
+      useEffect(() => { if (syncId) localStorage.setItem('pianoSyncId', syncId); }, [syncId]);
 
       useEffect(() => {
         if (isDark) {
@@ -1288,8 +1205,7 @@
 
       const recordPlay = (piece) => {
         const now = Date.now();
-        const updatedPieces = pieces.map(p => p.id === piece.id ? { ...p, lastPlayed: now, playCount: (p.playCount || 0) + 1 } : p);
-        setPieces(updatedPieces);
+        setPieces(pieces.map(p => p.id === piece.id ? { ...p, lastPlayed: now, playCount: (p.playCount || 0) + 1 } : p));
 
         const newHistoryEntry = { historyId: Date.now(), pieceId: piece.id, title: piece.title, timestamp: now };
         setHistory([newHistoryEntry, ...history]);
@@ -1328,9 +1244,7 @@
         const entry = history.find(h => h.historyId === historyId);
         if (entry) {
           const isToday = new Date(entry.timestamp).toDateString() === new Date().toDateString();
-          if (isToday) {
-            setDailyStats(prev => ({ ...prev, count: Math.max(0, prev.count - 1) }));
-          }
+          if (isToday) setDailyStats(prev => ({ ...prev, count: Math.max(0, prev.count - 1) }));
         }
         setHistory(history.filter(h => h.historyId !== historyId));
         setPieces(pieces.map(p => p.id === pieceId ? { ...p, playCount: Math.max(0, (p.playCount || 0) - 1) } : p));
@@ -1338,47 +1252,25 @@
 
       const handleStartAdd = () => {
         setNewPieceTitle(`${pieces.length + 1}. `);
-        const today = new Date().toISOString().split('T')[0];
-        setNewPieceDate(today);
+        setNewPieceDate(new Date().toISOString().split('T')[0]);
         setIsAdding(true);
       };
 
       const addNewPiece = () => {
         if (!newPieceTitle.trim()) return;
-        const newPiece = {
-          id: Date.now(),
-          title: newPieceTitle,
-          startDate: newPieceDate,
-          lastPlayed: 0,
-          playCount: 0,
-          isRed: false
-        };
+        const newPiece = { id: Date.now(), title: newPieceTitle, startDate: newPieceDate, lastPlayed: 0, playCount: 0, isRed: false };
         setPieces([newPiece, ...pieces]);
         setNewPieceTitle("");
         setIsAdding(false);
       };
 
-      const deletePiece = (id) => {
-        if (confirm("Delete this piece from your repertoire?")) setPieces(pieces.filter(p => p.id !== id));
-      };
+      const deletePiece = (id) => { if (confirm("Delete this piece from your repertoire?")) setPieces(pieces.filter(p => p.id !== id)); };
+      const editPiece = (id, updated) => setPieces(pieces.map(p => p.id === id ? { ...p, ...updated } : p));
+      const toggleRedPiece = (id) => setPieces(pieces.map(p => p.id === id ? { ...p, isRed: !p.isRed } : p));
 
-      const editPiece = (id, updated) => {
-        setPieces(pieces.map(p => p.id === id ? { ...p, ...updated } : p));
-      };
-
-      const toggleRedPiece = (id) => {
-        setPieces(pieces.map(p => p.id === id ? { ...p, isRed: !p.isRed } : p));
-      };
-
-      const addCustomMilestone = (milestone) => {
-        setCustomMilestones([...customMilestones, { ...milestone, id: milestone.id || Date.now() }]);
-      };
-      const deleteCustomMilestone = (id) => {
-        setCustomMilestones(customMilestones.filter(m => m.id !== id));
-      };
-      const editCustomMilestone = (id, updated) => {
-        setCustomMilestones(customMilestones.map(m => m.id === id ? { ...m, ...updated } : m));
-      };
+      const addCustomMilestone = (milestone) => setCustomMilestones([...customMilestones, { ...milestone, id: milestone.id || Date.now() }]);
+      const deleteCustomMilestone = (id) => setCustomMilestones(customMilestones.filter(m => m.id !== id));
+      const editCustomMilestone = (id, updated) => setCustomMilestones(customMilestones.map(m => m.id === id ? { ...m, ...updated } : m));
 
       const handleLogout = () => {
         if (confirm("Are you sure? This will disconnect cloud sync and clear all local data.")) {
@@ -1448,7 +1340,9 @@
                 setLegacyMeta={setLegacyMeta}
               />
             )}
+
             {appMode === 'REPS' && <RepetitionsView repState={repState} setRepState={setRepState} />}
+
             {appMode === 'REPERTOIRE' && (
               <>
                 {view === 'PRACTICE' && <PracticeView currentPiece={currentPiece} pickPiece={pickPiece} stopSession={stopSession} redListCount={pieces.filter(p => p.isRed).length} />}
