@@ -8,9 +8,9 @@
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Piano v31">
+    <meta name="apple-mobile-web-app-title" content="Piano v32">
     
-    <title>Piano v31</title>
+    <title>Piano v32</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -63,9 +63,9 @@
         /* Swipe Animation */
         .swipe-item {
             transition: transform 0.2s ease-out;
-            z-index: 20; /* Ensure content is above delete button */
+            z-index: 20; 
         }
-        .delete-layer {
+        .swipe-actions {
             z-index: 10;
         }
     </style>
@@ -76,7 +76,7 @@
 
     <script type="text/babel">
         // =================================================================
-        // APP VERSION: v31
+        // APP VERSION: v32
         // =================================================================
 
         const userFirebaseConfig = {
@@ -117,6 +117,7 @@
         const IconList = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
         const IconClock = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
         const IconTrash = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>;
+        const IconEdit = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
         const IconCrown = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"></path></svg>;
         const IconPlay = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
         const IconStop = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>;
@@ -126,8 +127,8 @@
         const IconRefresh = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
         const IconCloud = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>;
         const IconLogOut = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
-        const IconDot = ({ filled }) => <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={filled ? "text-red-500" : "text-slate-300 dark:text-slate-600"}><circle cx="12" cy="12" r="8"></circle></svg>;
-        // RESTORED MISSING ICON causing the crash
+        // Discrete Red List Icon
+        const IconDot = ({ filled }) => <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={filled ? "text-red-500" : "text-slate-300 dark:text-slate-600"}><circle cx="12" cy="12" r="9"></circle></svg>;
         const IconDiamond = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none" className="text-cyan-500"><path d="M12 2L2 12l10 10 10-10L12 2z"></path></svg>;
 
         const IconMoon = ({ size = 20, ...props }) => (
@@ -221,36 +222,49 @@
             };
         }
 
-        const TenThousandView = ({ tenKData, setTenKData, customMilestones, addCustomMilestone, deleteCustomMilestone, editCustomMilestone }) => {
+        const TenThousandView = ({ tenKData, setTenKData, customMilestones, addCustomMilestone, deleteCustomMilestone, editCustomMilestone, legacyMeta, setLegacyMeta }) => {
             const stats = calculate10kStats(tenKData.hours, tenKData.minutes);
             
             const [isAdding, setIsAdding] = useState(false);
             const [editingId, setEditingId] = useState(null); 
+            const [expandedId, setExpandedId] = useState(null);
             const [formState, setFormState] = useState({ hours: '', title: '', description: '' });
 
             const allMilestones = useMemo(() => {
                 const combined = [
-                    ...LEGACY_MILESTONES.map(m => ({ ...m, id: `legacy-${m.hours}` })),
+                    ...LEGACY_MILESTONES.map(m => ({ 
+                        ...m, 
+                        id: `legacy-${m.hours}`,
+                        title: `${m.hours} Hours`,
+                        description: legacyMeta[`legacy-${m.hours}`] || ""
+                    })),
                     ...customMilestones.map(m => ({ ...m, date: new Date(m.dateCreated || Date.now()), type: 'custom' }))
                 ];
                 return combined.sort((a, b) => b.hours - a.hours);
-            }, [customMilestones]);
+            }, [customMilestones, legacyMeta]);
 
             const handleSave = () => {
-                if (formState.hours && formState.title) {
-                    if (editingId) {
-                        editCustomMilestone(editingId, formState);
-                    } else {
+                // If editing Legacy, we only save description to meta
+                if (editingId && editingId.startsWith('legacy-')) {
+                    setLegacyMeta(prev => ({ ...prev, [editingId]: formState.description }));
+                } 
+                // If editing Custom
+                else if (editingId) {
+                    editCustomMilestone(editingId, formState);
+                } 
+                // Creating New
+                else {
+                    if (formState.hours && formState.title) {
                         addCustomMilestone({ ...formState, dateCreated: Date.now() });
                     }
-                    setFormState({ hours: '', title: '', description: '' });
-                    setIsAdding(false);
-                    setEditingId(null);
                 }
+                setFormState({ hours: '', title: '', description: '' });
+                setIsAdding(false);
+                setEditingId(null);
             };
             
             const handleDelete = () => {
-                if (editingId && confirm("Delete this milestone?")) {
+                if (editingId && !editingId.startsWith('legacy-') && confirm("Delete this milestone?")) {
                     deleteCustomMilestone(editingId);
                     setIsAdding(false);
                     setEditingId(null);
@@ -269,10 +283,19 @@
                 setIsAdding(true);
             };
 
+            const toggleExpand = (id) => {
+                setExpandedId(expandedId === id ? null : id);
+            };
+
             return (
                 <div className="flex-1 flex flex-col p-6 overflow-y-auto w-full animate-in fade-in zoom-in duration-300 scroller-fix">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700 z-20 relative">
-                        <div className="flex justify-between items-center mb-4"><h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2></div>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
+                            <button onClick={openAdd} className="text-xs font-bold text-indigo-500 flex items-center gap-1 bg-indigo-50 dark:bg-slate-800 px-3 py-1.5 rounded-full">
+                                <IconPlus /> Add Milestone
+                            </button>
+                        </div>
                         <div className="flex gap-4 items-center">
                             <div className="flex-1"><label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Hours</label><input type="number" value={tenKData.hours} onChange={(e) => setTenKData({...tenKData, hours: e.target.value})} placeholder="0" className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 focus:border-indigo-500 outline-none text-slate-900 dark:text-white p-1"/></div>
                             <div className="flex-1"><label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Minutes</label><input type="number" value={tenKData.minutes} onChange={(e) => setTenKData({...tenKData, minutes: e.target.value})} placeholder="0" className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 focus:border-indigo-500 outline-none text-slate-900 dark:text-white p-1"/></div>
@@ -282,23 +305,21 @@
                         <>
                             <div className="mb-4"><div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-2"><span>MASTERY</span><span>{stats.percentage}%</span></div><div className="h-6 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner relative"><div className="h-full bg-green-500 transition-all duration-1000 ease-out relative" style={{ width: `${stats.percentage}%` }}><div className="absolute inset-0 bg-white/20"></div></div></div><div className="flex justify-between mt-2 text-xs text-slate-400 font-mono"><span>Avg: {stats.avgDisplay}/day</span><span>Day {stats.daysPassed}</span></div></div>
                             
-                            <div className="flex justify-end mb-2">
-                                <button onClick={openAdd} className="text-xs font-bold text-indigo-500 flex items-center gap-1 bg-indigo-50 dark:bg-slate-800 px-3 py-1.5 rounded-full">
-                                    <IconPlus /> Add Milestone
-                                </button>
-                            </div>
-
                             {isAdding && (
                                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200">
                                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">{editingId ? 'Edit Milestone' : 'New Milestone'}</h3>
                                         <div className="space-y-3">
-                                            <input type="number" placeholder="At Hours (e.g. 1050)" value={formState.hours} onChange={e => setFormState({...formState, hours: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white" />
-                                            <input type="text" placeholder="Title (e.g. New Piano)" value={formState.title} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white" />
+                                            {!editingId?.startsWith('legacy-') && (
+                                                <>
+                                                    <input type="number" placeholder="At Hours (e.g. 1050)" value={formState.hours} onChange={e => setFormState({...formState, hours: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white" />
+                                                    <input type="text" placeholder="Title (e.g. New Piano)" value={formState.title} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white" />
+                                                </>
+                                            )}
                                             <textarea placeholder="Description..." value={formState.description} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white h-24" />
                                             <div className="flex gap-2 pt-2">
                                                 <button onClick={handleSave} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
-                                                {editingId && <button onClick={handleDelete} className="px-4 bg-red-100 text-red-500 py-3 rounded-xl text-sm font-bold"><IconTrash/></button>}
+                                                {editingId && !editingId.startsWith('legacy-') && <button onClick={handleDelete} className="px-4 bg-red-100 text-red-500 py-3 rounded-xl text-sm font-bold"><IconTrash/></button>}
                                                 <button onClick={() => setIsAdding(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
                                             </div>
                                         </div>
@@ -328,29 +349,33 @@
                                 <div className="relative z-10 mb-8 pl-16"><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-green-500 ring-4 ring-green-500/20 animate-pulse"></div><div className="bg-white dark:bg-slate-800 border border-green-200 dark:border-green-900/50 rounded-xl p-4 shadow-sm"><div className="flex justify-between items-center mb-1"><div className="text-green-600 dark:text-green-400 text-xs font-bold uppercase tracking-wider">Current</div><div className="text-xs text-slate-400">Today</div></div><div className="text-2xl font-bold text-slate-900 dark:text-white">{Math.floor(stats.totalPlayed)} <span className="text-sm font-normal text-slate-500">Hours</span></div></div></div>
                                 
                                 {allMilestones.map((milestone, idx) => {
+                                    const isExpanded = expandedId === milestone.id;
                                     const isCustom = milestone.type === 'custom';
                                     return (
                                         <div 
                                             key={milestone.id || idx} 
-                                            onClick={() => isCustom && openEdit(milestone)} 
-                                            className={`relative z-10 transition-all mb-8 pl-16 ${isCustom ? 'cursor-pointer' : 'opacity-60'}`}
+                                            onClick={() => toggleExpand(milestone.id)} 
+                                            className={`relative z-10 transition-all mb-8 pl-16 ${isCustom ? 'cursor-pointer' : 'cursor-pointer opacity-80 hover:opacity-100'}`}
                                         >
                                             <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div>
                                             
                                             <div className="flex-1">
                                                 <div className="flex justify-between items-baseline">
-                                                    <span className={`text-lg font-bold ${isCustom ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                                                        {isCustom ? milestone.title : `${milestone.hours} Hours`}
+                                                    <span className={`text-lg font-bold text-slate-700 dark:text-slate-300`}>
+                                                        {milestone.title}
                                                     </span>
                                                     {isCustom ? <span className="text-xs font-bold text-indigo-500">{milestone.hours} h</span> : <span className="text-xs text-slate-400">{milestone.avg}/day</span>}
                                                 </div>
                                                 <div className="text-xs text-slate-400 mt-0.5">
-                                                    {isCustom ? 'Custom Event' : `${calculateDaysAgo(milestone.date)} days ago`}
+                                                    {calculateDaysAgo(milestone.date)} days ago
                                                 </div>
                                                 
-                                                {milestone.description && (
-                                                    <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                                                        {milestone.description}
+                                                {isExpanded && (
+                                                    <div className="mt-3 text-sm text-slate-600 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700 pt-2 flex justify-between items-start animate-in fade-in">
+                                                        <div className="flex-1 mr-2 whitespace-pre-wrap">{milestone.description || <span className="text-slate-400 italic">No description...</span>}</div>
+                                                        <button onClick={(e) => { e.stopPropagation(); openEdit(milestone); }} className="text-slate-400 hover:text-indigo-500 p-1">
+                                                            <IconEdit />
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
@@ -407,12 +432,10 @@
                 ) : <div className="text-slate-400 dark:text-slate-500 italic">Tap below to pick a piece</div>}
                 
                 <div className="flex flex-col gap-4 w-full max-w-sm">
-                    {/* Main Start Button */}
                     <button onClick={() => pickPiece(false)} className="bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-500 dark:active:bg-indigo-600 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all transform active:scale-95 w-full">
                         {currentPiece ? "Next Piece" : "Start Session"}
                     </button>
 
-                    {/* Red List Button */}
                     {!currentPiece && (
                         <button onClick={() => pickPiece(true)} className="bg-red-500 active:bg-red-600 text-white text-sm font-bold py-3 px-6 rounded-xl shadow-md transition-all transform active:scale-95 w-full">
                             Red List
@@ -428,12 +451,14 @@
             </div>
         );
 
-        const RepertoireView = ({ sortedPieces, deletePiece, toggleRedList, isRedListMode, toggleRedPiece }) => {
+        const RepertoireView = ({ sortedPieces, deletePiece, editPiece, toggleRedList, isRedListMode, toggleRedPiece }) => {
             const displayedPieces = isRedListMode 
                 ? sortedPieces.filter(p => p.isRed) 
                 : sortedPieces;
             
             const [swipedId, setSwipedId] = useState(null);
+            const [editingId, setEditingId] = useState(null);
+            const [editForm, setEditForm] = useState({ title: '', date: '' });
             const touchStartX = useRef(null);
 
             const handleTouchStart = (e, id) => {
@@ -453,14 +478,43 @@
                 touchStartX.current = null;
             };
 
+            const startEdit = (piece) => {
+                setEditingId(piece.id);
+                setEditForm({ title: piece.title, date: piece.startDate || '' });
+            };
+
+            const saveEdit = () => {
+                if (editForm.title && editingId) {
+                    editPiece(editingId, { title: editForm.title, startDate: editForm.date });
+                    setEditingId(null);
+                    setSwipedId(null);
+                }
+            };
+
             return (
                 <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     <div className="flex items-center justify-between mb-4 px-2">
                         <div className="text-sm font-bold uppercase tracking-wider text-slate-400">My Repertoire</div>
                         <button onClick={toggleRedList} className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border transition-all ${isRedListMode ? 'bg-red-500 text-white border-red-500' : 'bg-transparent text-slate-400 border-slate-300 dark:border-slate-600'}`}>
-                            <IconDot filled={true} /> {isRedListMode ? 'Red List Active' : 'Show Red List'}
+                            <IconDot filled={isRedListMode} /> {isRedListMode ? 'Red List Active' : 'Show Red List'}
                         </button>
                     </div>
+
+                    {editingId && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200">
+                                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Edit Piece</h3>
+                                <div className="space-y-3">
+                                    <input value={editForm.title} onChange={(e) => setEditForm({...editForm, title: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-lg outline-none dark:bg-slate-700 dark:text-white" />
+                                    <input type="date" value={editForm.date} onChange={(e) => setEditForm({...editForm, date: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white" />
+                                    <div className="flex gap-2 pt-2">
+                                        <button onClick={saveEdit} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
+                                        <button onClick={() => setEditingId(null)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="space-y-3 pb-8">
                         {[...displayedPieces].sort((a,b) => b.id - a.id).map((piece) => {
@@ -469,14 +523,13 @@
 
                             return (
                                 <div key={piece.id} className="relative overflow-hidden rounded-xl bg-white dark:bg-slate-800">
-                                    <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-6 delete-layer z-0">
-                                        <button onClick={() => deletePiece(piece.id)} className="text-white font-bold flex items-center gap-1">
-                                            <IconTrash /> Delete
-                                        </button>
+                                    <div className="absolute inset-0 flex justify-end swipe-actions z-0">
+                                        <button onClick={() => startEdit(piece)} className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold w-20 flex items-center justify-center">Edit</button>
+                                        <button onClick={() => deletePiece(piece.id)} className="bg-red-500 text-white font-bold w-24 flex items-center justify-center">Delete</button>
                                     </div>
                                     
                                     <div 
-                                        className={`relative bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm p-4 flex items-center justify-between swipe-item z-10 ${isSwiped ? '-translate-x-32' : 'translate-x-0'}`}
+                                        className={`relative bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm p-4 flex items-center justify-between swipe-item z-10 ${isSwiped ? '-translate-x-44' : 'translate-x-0'}`}
                                         onTouchStart={(e) => handleTouchStart(e, piece.id)}
                                         onTouchEnd={(e) => handleTouchEnd(e, piece.id)}
                                     >
@@ -570,7 +623,7 @@
                         </button>
                     </div>
 
-                    <div className="px-2 text-center text-xs text-slate-400">Piano v31<br/>Build: 01.01.2026</div>
+                    <div className="px-2 text-center text-xs text-slate-400">Piano v32<br/>Build: 01.01.2026</div>
                 </div>
             );
         };
@@ -634,6 +687,7 @@
                             if (data.pianoHistory_v1) setHistory(data.pianoHistory_v1);
                             if (data.pianoDailyStats_v1) setDailyStats(data.pianoDailyStats_v1);
                             if (data.pianoCustomMilestones_v1) setCustomMilestones(data.pianoCustomMilestones_v1);
+                            if (data.pianoLegacyMeta_v1) setLegacyMeta(data.pianoLegacyMeta_v1);
                             setSyncStatus("synced");
                         } else {
                             setSyncStatus("synced");
@@ -660,6 +714,11 @@
             const [customMilestones, setCustomMilestones] = useState(() => {
                 const saved = localStorage.getItem('pianoCustomMilestones_v1');
                 return saved ? JSON.parse(saved) : [];
+            });
+            // New state for Legacy Milestone Metadata (descriptions)
+            const [legacyMeta, setLegacyMeta] = useState(() => {
+                const saved = localStorage.getItem('pianoLegacyMeta_v1');
+                return saved ? JSON.parse(saved) : {};
             });
             const [repState, setRepState] = useState(() => {
                 return { count: 5, target: 5, mode: 'DOWN' };
@@ -692,6 +751,7 @@
             useEffect(() => { saveData('pianoDailyStats_v1', dailyStats); }, [dailyStats]);
             useEffect(() => { saveData('piano10k_v1', tenKData); }, [tenKData]);
             useEffect(() => { saveData('pianoCustomMilestones_v1', customMilestones); }, [customMilestones]);
+            useEffect(() => { saveData('pianoLegacyMeta_v1', legacyMeta); }, [legacyMeta]);
             
             useEffect(() => {
                 if (syncId) localStorage.setItem('pianoSyncId', syncId);
@@ -785,6 +845,10 @@
                 if(confirm("Delete this piece from your repertoire?")) setPieces(pieces.filter(p => p.id !== id)); 
             };
 
+            const editPiece = (id, updated) => {
+                setPieces(pieces.map(p => p.id === id ? { ...p, ...updated } : p));
+            };
+
             const toggleRedPiece = (id) => {
                 setPieces(pieces.map(p => p.id === id ? { ...p, isRed: !p.isRed } : p));
             };
@@ -808,6 +872,7 @@
                     setTenKData({ hours: "", minutes: "" });
                     setDailyStats({ date: new Date().toDateString(), count: 0 });
                     setCustomMilestones([]);
+                    setLegacyMeta({});
                     setSyncStatus("disconnected");
                 }
             };
@@ -835,7 +900,7 @@
                                 <button onClick={() => setView('REPERTOIRE')} className={`p-2 rounded-full transition-colors ${view === 'REPERTOIRE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconList /></button>
                                 <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconCrown /></button>
                                 <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconClock /></button>
-                                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v31</button>
+                                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v32</button>
                             </div>
                         )}
                     </div>
@@ -849,12 +914,12 @@
                     )}
 
                     <div className="flex-1 overflow-hidden relative flex flex-col">
-                        {appMode === '10K' && <TenThousandView tenKData={tenKData} setTenKData={setTenKData} customMilestones={customMilestones} addCustomMilestone={addCustomMilestone} deleteCustomMilestone={deleteCustomMilestone} editCustomMilestone={editCustomMilestone} />}
+                        {appMode === '10K' && <TenThousandView tenKData={tenKData} setTenKData={setTenKData} customMilestones={customMilestones} addCustomMilestone={addCustomMilestone} deleteCustomMilestone={deleteCustomMilestone} editCustomMilestone={editCustomMilestone} legacyMeta={legacyMeta} setLegacyMeta={setLegacyMeta} />}
                         {appMode === 'REPS' && <RepetitionsView repState={repState} setRepState={setRepState} />}
                         {appMode === 'REPERTOIRE' && (
                             <>
                                 {view === 'PRACTICE' && <PracticeView currentPiece={currentPiece} pickPiece={pickPiece} stopSession={stopSession} />}
-                                {view === 'REPERTOIRE' && <RepertoireView sortedPieces={pieces} deletePiece={deletePiece} toggleRedList={() => setIsRedListMode(!isRedListMode)} isRedListMode={isRedListMode} toggleRedPiece={toggleRedPiece} />}
+                                {view === 'REPERTOIRE' && <RepertoireView sortedPieces={pieces} deletePiece={deletePiece} editPiece={editPiece} toggleRedList={() => setIsRedListMode(!isRedListMode)} isRedListMode={isRedListMode} toggleRedPiece={toggleRedPiece} />}
                                 {view === 'LEADERBOARD' && <LeaderboardView sortedPieces={sortedPieces} deletePiece={deletePiece} />}
                                 {view === 'HISTORY' && <HistoryView history={history} replayPieceFromHistory={replayPieceFromHistory} deleteHistoryEntry={deleteHistoryEntry} formatTime={formatTime} />}
                                 {view === 'SETTINGS' && <SettingsView syncStatus={syncStatus} isFirebaseEnabled={isFirebaseEnabled} syncId={syncId} setSyncId={setSyncId} handleLogout={handleLogout} isDark={isDark} setIsDark={setIsDark} />}
