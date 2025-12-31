@@ -8,9 +8,9 @@
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Piano v32">
+    <meta name="apple-mobile-web-app-title" content="Piano v33">
     
-    <title>Piano v32</title>
+    <title>Piano v33</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -76,7 +76,7 @@
 
     <script type="text/babel">
         // =================================================================
-        // APP VERSION: v32
+        // APP VERSION: v33
         // =================================================================
 
         const userFirebaseConfig = {
@@ -127,10 +127,8 @@
         const IconRefresh = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
         const IconCloud = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>;
         const IconLogOut = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
-        // Discrete Red List Icon
         const IconDot = ({ filled }) => <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={filled ? "text-red-500" : "text-slate-300 dark:text-slate-600"}><circle cx="12" cy="12" r="9"></circle></svg>;
-        const IconDiamond = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none" className="text-cyan-500"><path d="M12 2L2 12l10 10 10-10L12 2z"></path></svg>;
-
+        
         const IconMoon = ({ size = 20, ...props }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -244,15 +242,12 @@
             }, [customMilestones, legacyMeta]);
 
             const handleSave = () => {
-                // If editing Legacy, we only save description to meta
                 if (editingId && editingId.startsWith('legacy-')) {
                     setLegacyMeta(prev => ({ ...prev, [editingId]: formState.description }));
                 } 
-                // If editing Custom
                 else if (editingId) {
                     editCustomMilestone(editingId, formState);
                 } 
-                // Creating New
                 else {
                     if (formState.hours && formState.title) {
                         addCustomMilestone({ ...formState, dateCreated: Date.now() });
@@ -355,19 +350,19 @@
                                         <div 
                                             key={milestone.id || idx} 
                                             onClick={() => toggleExpand(milestone.id)} 
-                                            className={`relative z-10 transition-all mb-8 pl-16 ${isCustom ? 'cursor-pointer' : 'cursor-pointer opacity-80 hover:opacity-100'}`}
+                                            className={`relative z-10 transition-all mb-8 pl-16 cursor-pointer ${isExpanded ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
                                         >
-                                            <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div>
+                                            <div className={`absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${isExpanded ? 'bg-slate-900 dark:bg-white scale-125' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
                                             
                                             <div className="flex-1">
                                                 <div className="flex justify-between items-baseline">
                                                     <span className={`text-lg font-bold text-slate-700 dark:text-slate-300`}>
                                                         {milestone.title}
                                                     </span>
-                                                    {isCustom ? <span className="text-xs font-bold text-indigo-500">{milestone.hours} h</span> : <span className="text-xs text-slate-400">{milestone.avg}/day</span>}
+                                                    {isCustom ? <span className="text-xs text-slate-400">{milestone.hours} h</span> : <span className="text-xs text-slate-400">{milestone.avg}/day</span>}
                                                 </div>
                                                 <div className="text-xs text-slate-400 mt-0.5">
-                                                    {calculateDaysAgo(milestone.date)} days ago
+                                                    {isCustom ? 'Custom Event' : `${calculateDaysAgo(milestone.date)} days ago`}
                                                 </div>
                                                 
                                                 {isExpanded && (
@@ -437,8 +432,8 @@
                     </button>
 
                     {!currentPiece && (
-                        <button onClick={() => pickPiece(true)} className="bg-red-500 active:bg-red-600 text-white text-sm font-bold py-3 px-6 rounded-xl shadow-md transition-all transform active:scale-95 w-full">
-                            Red List
+                        <button onClick={() => pickPiece(true)} className="border-2 border-red-500 text-red-500 active:bg-red-50 dark:active:bg-red-900/20 text-sm font-bold py-3 px-6 rounded-xl transition-all transform active:scale-95 w-full flex items-center justify-center gap-2">
+                            <IconDot filled={true} /> Practice Red List
                         </button>
                     )}
 
@@ -623,7 +618,7 @@
                         </button>
                     </div>
 
-                    <div className="px-2 text-center text-xs text-slate-400">Piano v32<br/>Build: 01.01.2026</div>
+                    <div className="px-2 text-center text-xs text-slate-400">Piano v33<br/>Build: 01.01.2026</div>
                 </div>
             );
         };
@@ -900,7 +895,7 @@
                                 <button onClick={() => setView('REPERTOIRE')} className={`p-2 rounded-full transition-colors ${view === 'REPERTOIRE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconList /></button>
                                 <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconCrown /></button>
                                 <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconClock /></button>
-                                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v32</button>
+                                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v33</button>
                             </div>
                         )}
                     </div>
