@@ -14,9 +14,9 @@
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Piano v38" />
+  <meta name="apple-mobile-web-app-title" content="Piano v39" />
 
-  <title>Piano v38</title>
+  <title>Piano v39</title>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -39,7 +39,8 @@
     .safe-area-pt { padding-top: env(safe-area-inset-top); }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .scroller-fix { -webkit-overflow-scrolling: touch; min-height: 0; flex: 1 1 0%; }
+    /* UPDATED: Added touch-action and overscroll-behavior-y for better scroll handling */
+    .scroller-fix { -webkit-overflow-scrolling: touch; min-height: 0; flex: 1 1 0%; touch-action: pan-y; overscroll-behavior-y: contain; }
     .swipe-item { transition: transform 0.2s ease-out; z-index: 20; }
     .swipe-actions { z-index: 10; }
 
@@ -56,7 +57,7 @@
 
   <script type="text/babel">
     // =================================================================
-    // APP VERSION: v38
+    // APP VERSION: v39
     // =================================================================
 
     const userFirebaseConfig = {
@@ -144,6 +145,20 @@
       return new Date(dateString)
         .toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
         .replace(/\//g, '.');
+    }
+
+    // UPDATED: Helper function to standardize time format
+    function formatAvgTime(str) {
+      if (!str) return "";
+      if (str.includes('h') && str.includes('m')) return str; // Already formatted
+      // Try parsing HH:MM or H:MM
+      const match = str.match(/^(\d+):(\d+)$/);
+      if (match) {
+        const h = parseInt(match[1], 10);
+        const m = parseInt(match[2], 10);
+        return `${h}h ${m}m`;
+      }
+      return str;
     }
 
     const LEGACY_MILESTONES = [
@@ -282,7 +297,7 @@
           title: `${m.hours} Hours`,
           date: new Date(m.date),
           description: m.description || "",
-          avg: m.avg
+          avg: formatAvgTime(m.avg) // UPDATED: Format time
         }));
 
         const custom = customMilestones.map(m => ({
@@ -818,6 +833,8 @@
       );
     };
 
+    // UPDATED: Next Piece button now uses session state logic (pickPiece without args)
+    // UPDATED: "Practice Red List" button text changed to "Red List"
     const PracticeView = ({ currentPiece, pickPiece, stopSession, redListCount }) => (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-8 animate-in fade-in duration-300 w-full overflow-hidden scroller-fix">
         {currentPiece ? (
@@ -829,13 +846,13 @@
         ) : <div className="text-slate-400 dark:text-slate-500 italic">Tap below to pick a piece</div>}
 
         <div className="flex flex-col gap-4 w-full max-w-sm">
-          <button onClick={() => pickPiece(false)} className="bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-500 dark:active:bg-indigo-600 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all transform active:scale-95 w-full">
+          <button onClick={() => pickPiece()} className="bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-500 dark:active:bg-indigo-600 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all transform active:scale-95 w-full">
             {currentPiece ? "Next Piece" : "Start Session"}
           </button>
 
           {!currentPiece && (
             <button onClick={() => pickPiece(true)} className="border-2 border-red-500 text-red-500 active:bg-red-50 dark:active:bg-red-900/20 text-sm font-bold py-3 px-6 rounded-xl transition-all transform active:scale-95 w-full flex items-center justify-center gap-2">
-              <IconDot filled={true} /> Practice Red List ({redListCount})
+              <IconDot filled={true} /> Red List ({redListCount})
             </button>
           )}
 
@@ -1039,7 +1056,7 @@
           </div>
 
           <div className="px-2 text-center text-xs text-slate-400">
-            Piano v38<br />Build: 01.01.2026
+            Piano v39<br />Build: 01.01.2026
           </div>
         </div>
       );
@@ -1172,6 +1189,9 @@
 
       const [isRedListMode, setIsRedListMode] = useState(false);
 
+      // UPDATED: New state to track if the current practice session is filtered (Red List)
+      const [sessionFilter, setSessionFilter] = useState(false);
+
       const sortedPieces = useMemo(() => [...pieces].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)), [pieces]);
 
       useEffect(() => { saveData('pianoRepertoire_v9', pieces); }, [pieces]);
@@ -1212,9 +1232,18 @@
         });
       };
 
+      // UPDATED: Logic to persist red list session until stop
       const pickPiece = (filterRed) => {
-        const pool = filterRed ? pieces.filter(p => p.isRed) : pieces;
-        if (pool.length === 0) return alert(filterRed ? "Red List is empty!" : "No pieces available!");
+        // If argument provided, it's a new session start (setting the mode)
+        // If no argument, use current sessionFilter state
+        let isRed = sessionFilter;
+        if (typeof filterRed === 'boolean') {
+          isRed = filterRed;
+          setSessionFilter(filterRed);
+        }
+
+        const pool = isRed ? pieces.filter(p => p.isRed) : pieces;
+        if (pool.length === 0) return alert(isRed ? "Red List is empty!" : "No pieces available!");
 
         const now = Date.now();
         const candidates = pool.map(p => {
@@ -1228,7 +1257,10 @@
         recordPlay(winner);
       };
 
-      const stopSession = () => setCurrentPiece(null);
+      const stopSession = () => {
+        setCurrentPiece(null);
+        setSessionFilter(false); // UPDATED: Reset session filter
+      };
 
       const replayPieceFromHistory = (pieceId) => {
         const piece = pieces.find(p => p.id === pieceId);
@@ -1307,7 +1339,7 @@
                 <button onClick={() => setView('REPERTOIRE')} className={`p-2 rounded-full transition-colors ${view === 'REPERTOIRE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconList /></button>
                 <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconCrown /></button>
                 <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconClock /></button>
-                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v38</button>
+                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v39</button>
               </div>
             )}
           </div>
