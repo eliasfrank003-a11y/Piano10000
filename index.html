@@ -32,49 +32,36 @@
   </script>
 
   <style>
-    /* iOS KEYBOARD FIXES */
-    html { 
-      background-color: #f8fafc; 
-      transition: background-color 0.3s ease; 
-      height: 100%; 
-      overflow: hidden; /* Prevent html scroll */
-    }
+    html { background-color: #f8fafc; transition: background-color 0.3s ease; height: 100%; }
     html.dark { background-color: #0f172a; }
-    
-    body { 
-      background-color: transparent; 
+
+    body {
+      background-color: transparent;
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      /* FIX: position fixed locks the body in place when keyboard opens */
-      position: fixed; 
-      inset: 0;
-      overflow: hidden; 
+      overflow: hidden;
     }
 
-    #root { 
-      height: 100%; 
-      width: 100%; 
-      overflow: hidden; 
-      display: flex; 
-      flex-direction: column; 
-      position: relative; 
+    /* Standalone-safe: drive app height via CSS variable updated by visualViewport */
+    #root {
+      width: 100%;
+      height: var(--app-height, 100dvh);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
     }
 
     .safe-area-pt { padding-top: env(safe-area-inset-top); }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .scroller-fix { -webkit-overflow-scrolling: touch; min-height: 0; flex: 1 1 0%; touch-action: pan-y; overscroll-behavior-y: contain; }
-    
+
     input[type="date"]{
       -webkit-appearance: none;
       appearance: none;
-    }
-
-    /* FIX: Force 16px font on inputs to prevent iOS zooming */
-    input, textarea, select {
-        font-size: 16px !important;
     }
   </style>
 </head>
@@ -84,7 +71,7 @@
 
   <script type="text/babel">
     // =================================================================
-    // APP VERSION: v44 (iOS Keyboard Fix Applied)
+    // APP VERSION: v44 (keyboard fix for iOS standalone PWA)
     // =================================================================
 
     const userFirebaseConfig = {
@@ -99,49 +86,63 @@
 
     const { useState, useEffect, useMemo, useRef } = React;
 
-    // --- iOS PWA KEYBOARD FIX (Enhanced) ---
+    // --- iOS PWA KEYBOARD FIX (standalone-safe) ---
+    // Uses a CSS var for #root height instead of forcing scroll position.
+    // Avoids visualViewport "scroll" and avoids window.scrollTo, which can cancel focus in standalone PWAs.
     function useIOSViewportFix() {
       useEffect(() => {
-        const handleResize = () => {
-          if (!window.visualViewport) return;
-          const root = document.getElementById('root');
-          if (root) {
-            // This ensures the app container shrinks to be ABOVE the keyboard
-            root.style.height = `${window.visualViewport.height}px`;
-            // Scroll to 0,0 to prevent the fixed body from being offset
-            window.scrollTo(0, 0);
-          }
+        const root = document.getElementById('root');
+        if (!root) return;
+
+        const setAppHeight = () => {
+          const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+          document.documentElement.style.setProperty('--app-height', `${h}px`);
         };
 
+        setAppHeight();
+
+        window.addEventListener('resize', setAppHeight);
         if (window.visualViewport) {
-          window.visualViewport.addEventListener('resize', handleResize);
-          window.visualViewport.addEventListener('scroll', handleResize);
-          handleResize(); 
+          window.visualViewport.addEventListener('resize', setAppHeight);
         }
 
         return () => {
+          window.removeEventListener('resize', setAppHeight);
           if (window.visualViewport) {
-            window.visualViewport.removeEventListener('resize', handleResize);
-            window.visualViewport.removeEventListener('scroll', handleResize);
+            window.visualViewport.removeEventListener('resize', setAppHeight);
           }
         };
       }, []);
     }
 
-    // Scroll helper - Simplified to prevent jumping
+    // Scroll helper: only scroll when the focused element is obscured by the keyboard.
+    // Uses behavior: 'auto' to avoid iOS standalone focus glitches.
     function useScrollOnFocus() {
-        useEffect(() => {
-            const handleFocus = (e) => {
-                if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                    // Gentle delay to allow keyboard animation to finish
-                    setTimeout(() => {
-                        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 400);
-                }
-            };
-            document.addEventListener('focus', handleFocus, true);
-            return () => document.removeEventListener('focus', handleFocus, true);
-        }, []);
+      useEffect(() => {
+        const onFocusIn = (e) => {
+          const el = e.target;
+          if (!el) return;
+
+          const tag = el.tagName;
+          if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
+
+          setTimeout(() => {
+            const vv = window.visualViewport;
+            if (!vv) return;
+
+            const rect = el.getBoundingClientRect();
+            const visibleBottom = vv.height;
+            const padding = 12;
+
+            if (rect.bottom > (visibleBottom - padding)) {
+              el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+            }
+          }, 250);
+        };
+
+        document.addEventListener('focusin', onFocusIn, true);
+        return () => document.removeEventListener('focusin', onFocusIn, true);
+      }, []);
     }
 
     let db = null;
@@ -183,7 +184,7 @@
     const IconDot = ({ status }) => {
         let colorClass = "text-slate-300 dark:text-slate-600";
         let fill = "none";
-        
+
         if (status === 'red') {
             colorClass = "text-red-500";
             fill = "currentColor";
@@ -349,7 +350,7 @@
       const [modalStep, setModalStep] = useState('CHOOSE');
       const [modalType, setModalType] = useState(null);
       const [editingMilestone, setEditingMilestone] = useState(null);
-      
+
       const [isForecastOpen, setIsForecastOpen] = useState(false);
 
       const [formState, setFormState] = useState({
@@ -581,7 +582,7 @@
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
                   <IconInfo /> Stats Forecast
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div>
                     <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">To Increase Average</div>
@@ -1125,7 +1126,6 @@
                         </div>
                       )}
                     </div>
-                    {/* Cycle Status Button */}
                     <button onClick={(e) => { e.stopPropagation(); cyclePieceStatus(piece.id); }} className="p-2 active:scale-90 transition-transform">
                       <IconDot status={piece.status || (piece.isRed ? 'red' : 'normal')} />
                     </button>
@@ -1249,9 +1249,7 @@
     );
 
     function App() {
-      // Initialize iOS PWA Viewport Fix
       useIOSViewportFix();
-      // Initialize Focus Helper
       useScrollOnFocus();
 
       const [appMode, setAppMode] = useState('REPERTOIRE');
@@ -1312,11 +1310,9 @@
         }
       }, [syncId]);
 
-      // UPDATED: Migration logic inside init
       const [pieces, setPieces] = useState(() => {
         const saved = localStorage.getItem('pianoRepertoire_v9');
         let data = saved ? JSON.parse(saved) : INITIAL_REPERTOIRE;
-        // Migration: Ensure 'status' exists based on isRed
         data = data.map(p => {
             if (p.status) return p;
             return { ...p, status: p.isRed ? 'red' : 'normal' };
@@ -1362,10 +1358,10 @@
 
       const [newPieceTitle, setNewPieceTitle] = useState("");
       const [newPieceDate, setNewPieceDate] = useState("");
-      const [isAdding, setIsAdding] = useState(false); // Controls Modal now
+      const [isAdding, setIsAdding] = useState(false);
 
       const [isRedListMode, setIsRedListMode] = useState(false);
-      
+
       const [sessionFilter, setSessionFilter] = useState(false);
 
       const sortedPieces = useMemo(() => [...pieces].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)), [pieces]);
@@ -1408,7 +1404,6 @@
         });
       };
 
-      // UPDATED: Filtering Logic
       const pickPiece = (filterRed) => {
         let isRed = sessionFilter;
         if (typeof filterRed === 'boolean') {
@@ -1416,11 +1411,8 @@
           setSessionFilter(filterRed);
         }
 
-        // Green pieces are strictly excluded from "normal" practice and "red" practice
-        // Normal Mode: status != 'green'
-        // Red Mode: status == 'red'
-        const pool = isRed 
-            ? pieces.filter(p => p.status === 'red') 
+        const pool = isRed
+            ? pieces.filter(p => p.status === 'red')
             : pieces.filter(p => p.status !== 'green');
 
         if (pool.length === 0) return alert(isRed ? "Red List is empty!" : "No eligible pieces available!");
@@ -1463,17 +1455,16 @@
         setIsAdding(true);
       };
 
-      // UPDATED: Add new piece with default 'normal' status
       const addNewPiece = () => {
         if (!newPieceTitle.trim()) return;
-        const newPiece = { 
-            id: Date.now(), 
-            title: newPieceTitle, 
-            startDate: newPieceDate, 
-            lastPlayed: 0, 
-            playCount: 0, 
-            status: 'normal', 
-            isRed: false // Keep for legacy
+        const newPiece = {
+            id: Date.now(),
+            title: newPieceTitle,
+            startDate: newPieceDate,
+            lastPlayed: 0,
+            playCount: 0,
+            status: 'normal',
+            isRed: false
         };
         setPieces([newPiece, ...pieces]);
         setNewPieceTitle("");
@@ -1482,7 +1473,7 @@
 
       const deletePiece = (id) => { if (confirm("Delete this piece from your repertoire?")) setPieces(pieces.filter(p => p.id !== id)); };
       const editPiece = (id, updated) => setPieces(pieces.map(p => p.id === id ? { ...p, ...updated } : p));
-      
+
       const cyclePieceStatus = (id) => {
          setPieces(pieces.map(p => {
             if (p.id !== id) return p;
@@ -1491,7 +1482,7 @@
             if (current === 'normal') next = 'red';
             else if (current === 'red') next = 'green';
             else if (current === 'green') next = 'normal';
-            
+
             return { ...p, status: next, isRed: next === 'red' };
          }));
       };
@@ -1581,14 +1572,12 @@
               </>
             )}
           </div>
-          
-          {/* UPDATED: Add New Piece Modal (v44) */}
-          {/* Using 'absolute' instead of 'fixed' so it stays inside the shrunk #root */}
+
           {isAdding && (
              <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[90vh]">
                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add New Piece</h3>
-                   <div className="space-y-4 pb-32"> {/* Added extra padding at bottom */}
+                   <div className="space-y-4 pb-32">
                      <div>
                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Title</label>
                        <input
@@ -1601,11 +1590,11 @@
                      </div>
                      <div>
                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Date Started</label>
-                       <input 
-                         type="date" 
-                         value={newPieceDate} 
-                         onChange={(e) => setNewPieceDate(e.target.value)} 
-                         className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-sm outline-none" 
+                       <input
+                         type="date"
+                         value={newPieceDate}
+                         onChange={(e) => setNewPieceDate(e.target.value)}
+                         className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-sm outline-none"
                        />
                      </div>
                      <div className="flex gap-2 pt-2">
@@ -1619,7 +1608,6 @@
 
           {appMode === 'REPERTOIRE' && (view === 'PRACTICE' || view === 'REPERTOIRE' || view === 'LEADERBOARD') && (
             <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 z-10 w-full" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                {/* UPDATED: Button just triggers modal now */}
                 <button onClick={handleStartAdd} className="flex items-center justify-center gap-2 w-full p-4 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors">
                   <IconPlus /> Add New Piece
                 </button>
