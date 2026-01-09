@@ -32,27 +32,34 @@
   </script>
 
   <style>
-    html { background-color: #f8fafc; transition: background-color 0.3s ease; height: 100%; }
+    /* iOS KEYBOARD FIXES */
+    html { 
+      background-color: #f8fafc; 
+      transition: background-color 0.3s ease; 
+      height: 100%; 
+      overflow: hidden; /* Prevent html scroll */
+    }
     html.dark { background-color: #0f172a; }
     
-    /* UPDATED: v44 - Using normal layout flow but controlling overflow */
     body { 
       background-color: transparent; 
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden; /* Prevent body scroll, let React root handle it */
+      /* FIX: position fixed locks the body in place when keyboard opens */
+      position: fixed; 
+      inset: 0;
+      overflow: hidden; 
     }
 
-    /* The root is strictly controlled by JS for height on iOS */
     #root { 
       height: 100%; 
       width: 100%; 
       overflow: hidden; 
       display: flex; 
       flex-direction: column; 
-      position: relative; /* Important for absolute modal */
+      position: relative; 
     }
 
     .safe-area-pt { padding-top: env(safe-area-inset-top); }
@@ -64,6 +71,11 @@
       -webkit-appearance: none;
       appearance: none;
     }
+
+    /* FIX: Force 16px font on inputs to prevent iOS zooming */
+    input, textarea, select {
+        font-size: 16px !important;
+    }
   </style>
 </head>
 
@@ -72,7 +84,7 @@
 
   <script type="text/babel">
     // =================================================================
-    // APP VERSION: v44
+    // APP VERSION: v44 (iOS Keyboard Fix Applied)
     // =================================================================
 
     const userFirebaseConfig = {
@@ -87,18 +99,16 @@
 
     const { useState, useEffect, useMemo, useRef } = React;
 
-    // --- iOS PWA KEYBOARD FIX (v44 Enhanced) ---
+    // --- iOS PWA KEYBOARD FIX (Enhanced) ---
     function useIOSViewportFix() {
       useEffect(() => {
-        // This function forces the #root element to match the VISUAL viewport height.
-        // On iOS, when the keyboard opens, the visual viewport shrinks.
-        // By syncing this, our "absolute" modal will shrink too, avoiding the keyboard.
         const handleResize = () => {
           if (!window.visualViewport) return;
           const root = document.getElementById('root');
           if (root) {
+            // This ensures the app container shrinks to be ABOVE the keyboard
             root.style.height = `${window.visualViewport.height}px`;
-            // Scroll top to prevent the whole app from being pushed up
+            // Scroll to 0,0 to prevent the fixed body from being offset
             window.scrollTo(0, 0);
           }
         };
@@ -118,15 +128,15 @@
       }, []);
     }
 
-    // Scroll helper to ensure inputs aren't hidden
+    // Scroll helper - Simplified to prevent jumping
     function useScrollOnFocus() {
         useEffect(() => {
             const handleFocus = (e) => {
                 if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                    // Slight delay to allow keyboard animation to start
+                    // Gentle delay to allow keyboard animation to finish
                     setTimeout(() => {
                         e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 300);
+                    }, 400);
                 }
             };
             document.addEventListener('focus', handleFocus, true);
