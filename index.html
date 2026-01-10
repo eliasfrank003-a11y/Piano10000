@@ -71,7 +71,7 @@
 
   <script type="text/babel">
     // =================================================================
-    // APP VERSION: v45
+    // APP VERSION: v45 (Update)
     // =================================================================
 
     const userFirebaseConfig = {
@@ -547,8 +547,8 @@
           </div>
 
           {isForecastOpen && forecastData && (
-            <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[90vh]">
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 p-4">
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[80vh]">
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
                   <IconInfo /> Stats Forecast
                 </h3>
@@ -586,8 +586,8 @@
           )}
 
           {isModalOpen && (
-            <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[90vh]">
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 p-4">
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[80vh]">
 
                 {modalStep === 'CHOOSE' && (
                   <>
@@ -1044,8 +1044,8 @@
           </div>
 
           {editingId && (
-            <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[90vh]">
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 p-4">
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[80vh]">
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Edit Piece</h3>
                 <div className="space-y-3">
                   <input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-lg outline-none dark:bg-slate-700 dark:text-white" />
@@ -1362,6 +1362,26 @@
 
       useEffect(() => { if (syncId) localStorage.setItem('pianoSyncId', syncId); }, [syncId]);
 
+      // Check for day change on visibility change (re-opening app from background)
+      useEffect(() => {
+        const checkDay = () => {
+          const today = new Date().toDateString();
+          if (dailyStats.date !== today) {
+            setDailyStats({ date: today, count: 0 });
+          }
+        };
+
+        // Check immediately
+        checkDay();
+
+        document.addEventListener('visibilitychange', checkDay);
+        window.addEventListener('focus', checkDay);
+        return () => {
+            document.removeEventListener('visibilitychange', checkDay);
+            window.removeEventListener('focus', checkDay);
+        };
+      }, [dailyStats]); // Re-bind if dailyStats changes (though logic mainly depends on date)
+
       useEffect(() => {
         if (isDark) {
           document.documentElement.classList.add('dark');
@@ -1496,10 +1516,6 @@
 
       const cycleMode = () => {
         if (appMode === 'REPERTOIRE') setAppMode('10K');
-        else if (appMode === '10K') setAppMode('10K'); // Force cycle to REPERTOIRE (previous code had REPS, fixing cycle logic based on icons in request if any, but user asked for "keyboard" fixes. Assuming cycle logic was OK, I will keep 3 modes but fix cycle function).
-        // Wait, cycleMode logic in previous code was: REP -> 10K -> REPS -> REP.
-        // Let's restore that.
-        if (appMode === 'REPERTOIRE') setAppMode('10K');
         else if (appMode === '10K') setAppMode('REPS');
         else setAppMode('REPERTOIRE');
       };
@@ -1564,8 +1580,8 @@
           </div>
 
           {isAdding && (
-             <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[90vh]">
+             <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 p-4">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[80vh]">
                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add New Piece</h3>
                    <div className="space-y-4 pb-32">
                      <div>
