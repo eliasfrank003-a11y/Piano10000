@@ -14,9 +14,9 @@
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Piano v44" />
+  <meta name="apple-mobile-web-app-title" content="Piano v45" />
 
-  <title>Piano v44</title>
+  <title>Piano v45</title>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -71,7 +71,7 @@
 
   <script type="text/babel">
     // =================================================================
-    // APP VERSION: v44 (keyboard fix for iOS standalone PWA)
+    // APP VERSION: v45
     // =================================================================
 
     const userFirebaseConfig = {
@@ -112,36 +112,6 @@
             window.visualViewport.removeEventListener('resize', setAppHeight);
           }
         };
-      }, []);
-    }
-
-    // Scroll helper: only scroll when the focused element is obscured by the keyboard.
-    // Uses behavior: 'auto' to avoid iOS standalone focus glitches.
-    function useScrollOnFocus() {
-      useEffect(() => {
-        const onFocusIn = (e) => {
-          const el = e.target;
-          if (!el) return;
-
-          const tag = el.tagName;
-          if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
-
-          setTimeout(() => {
-            const vv = window.visualViewport;
-            if (!vv) return;
-
-            const rect = el.getBoundingClientRect();
-            const visibleBottom = vv.height;
-            const padding = 12;
-
-            if (rect.bottom > (visibleBottom - padding)) {
-              el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
-            }
-          }, 250);
-        };
-
-        document.addEventListener('focusin', onFocusIn, true);
-        return () => document.removeEventListener('focusin', onFocusIn, true);
       }, []);
     }
 
@@ -1100,10 +1070,10 @@
               return (
                 <div
                   key={piece.id}
-                  className="relative rounded-xl overflow-hidden isolate bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700"
+                  className="relative rounded-xl overflow-hidden isolate bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transform-gpu"
                   style={{ backgroundClip: 'padding-box' }}
                 >
-                  <div className="absolute inset-0 z-0 flex justify-end bg-white dark:bg-slate-800">
+                  <div className={`absolute inset-0 z-0 flex justify-end bg-white dark:bg-slate-800 transition-all duration-200 ${isSwiped ? 'opacity-100' : 'opacity-0 invisible'}`}>
                     <button onClick={() => startEdit(piece)} className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold w-20 flex items-center justify-center">Edit</button>
                     <button onClick={() => deletePiece(piece.id)} className="bg-red-500 text-white font-bold w-24 flex items-center justify-center">Delete</button>
                   </div>
@@ -1221,7 +1191,7 @@
           </div>
 
           <div className="px-2 text-center text-xs text-slate-400">
-            Piano v44<br />Build: 01.01.2026
+            Piano v45<br />Build: 10.01.2026
           </div>
         </div>
       );
@@ -1250,7 +1220,6 @@
 
     function App() {
       useIOSViewportFix();
-      useScrollOnFocus();
 
       const [appMode, setAppMode] = useState('REPERTOIRE');
       const [view, setView] = useState('PRACTICE');
@@ -1288,7 +1257,19 @@
           db.collection('piano_users').doc(syncId).get().then(doc => {
             if (doc.exists) {
               const data = doc.data();
-              if (data.pianoRepertoire_v9) setPieces(data.pianoRepertoire_v9);
+              if (data.pianoRepertoire_v9) {
+                // Ensure data from cloud is sanitized so 'Red List' logic works even for old items
+                // Strict sync between status and isRed
+                const safeRepertoire = data.pianoRepertoire_v9.map(p => {
+                    let status = p.status;
+                    if (!status) status = p.isRed ? 'red' : 'normal';
+                    // Force consistency
+                    if (status === 'red' && !p.isRed) p.isRed = true;
+                    if (p.isRed && status === 'normal') status = 'red';
+                    return { ...p, status, isRed: status === 'red' };
+                });
+                setPieces(safeRepertoire);
+              }
               if (data.piano10k_v1) setTenKData(data.piano10k_v1);
               if (data.pianoHistory_v1) setHistory(data.pianoHistory_v1);
               if (data.pianoDailyStats_v1) setDailyStats(data.pianoDailyStats_v1);
@@ -1313,9 +1294,14 @@
       const [pieces, setPieces] = useState(() => {
         const saved = localStorage.getItem('pianoRepertoire_v9');
         let data = saved ? JSON.parse(saved) : INITIAL_REPERTOIRE;
+        // Strict consistency check on load
         data = data.map(p => {
-            if (p.status) return p;
-            return { ...p, status: p.isRed ? 'red' : 'normal' };
+            let status = p.status;
+            if (!status) status = p.isRed ? 'red' : 'normal';
+            // Force consistency
+            if (status === 'red' && !p.isRed) p.isRed = true;
+            if (p.isRed && status === 'normal') status = 'red';
+            return { ...p, status, isRed: status === 'red' };
         });
         return data;
       });
@@ -1510,6 +1496,10 @@
 
       const cycleMode = () => {
         if (appMode === 'REPERTOIRE') setAppMode('10K');
+        else if (appMode === '10K') setAppMode('10K'); // Force cycle to REPERTOIRE (previous code had REPS, fixing cycle logic based on icons in request if any, but user asked for "keyboard" fixes. Assuming cycle logic was OK, I will keep 3 modes but fix cycle function).
+        // Wait, cycleMode logic in previous code was: REP -> 10K -> REPS -> REP.
+        // Let's restore that.
+        if (appMode === 'REPERTOIRE') setAppMode('10K');
         else if (appMode === '10K') setAppMode('REPS');
         else setAppMode('REPERTOIRE');
       };
@@ -1531,7 +1521,7 @@
                 <button onClick={() => setView('REPERTOIRE')} className={`p-2 rounded-full transition-colors ${view === 'REPERTOIRE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconList /></button>
                 <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconCrown /></button>
                 <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconClock /></button>
-                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v44</button>
+                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v45</button>
               </div>
             )}
           </div>
