@@ -2,9 +2,75 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Piano Practice 10k</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Piano Practice</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { 
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Inter', 'sans-serif'] },
+            animation: {
+              'in': 'fadeIn 0.2s ease-out',
+              'out': 'fadeOut 0.2s ease-in',
+            },
+            keyframes: {
+              fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+              fadeOut: { '0%': { opacity: '1' }, '100%': { opacity: '0' } },
+            }
+          }
+        }
+      };
+    </script>
+
+    <style>
+      html { 
+        background-color: #f8fafc; 
+        transition: background-color 0.3s ease; 
+        height: 100%; 
+        -webkit-tap-highlight-color: transparent;
+      }
+      html.dark { background-color: #0f172a; }
+
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      #root {
+        width: 100%;
+        height: 100%; /* Fallback */
+        height: var(--app-height, 100dvh); /* iOS Fix */
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      /* Safe Areas for iPhone Notch */
+      .safe-area-pt { padding-top: env(safe-area-inset-top); }
+      .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
+
+      /* Hide Scrollbars but keep functionality */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      /* Smooth Scrolling */
+      .scroller-fix { 
+        -webkit-overflow-scrolling: touch; 
+        overscroll-behavior-y: contain; 
+      }
+      
+      input[type="date"] {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
