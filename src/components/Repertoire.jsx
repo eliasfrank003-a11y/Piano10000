@@ -52,7 +52,7 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
   const [editForm, setEditForm] = useState({ title: '', date: '' });
   const touchStartX = useRef(null);
 
-  // --- ACTIONS (Recreated locally to match Legacy behavior) ---
+  // --- ACTIONS ---
   const deletePiece = (id) => { 
       if (confirm("Delete this?")) setRepertoire(repertoire.filter(p => p.id !== id)); 
   };
@@ -100,6 +100,8 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
 
   return (
     <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      
+      {/* Header */}
       <div className="flex items-center justify-between mb-4 px-2">
         <div className="text-sm font-bold uppercase tracking-wider text-slate-400">My Repertoire</div>
         <button onClick={toggleRedList} className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border transition-all ${isRedListMode ? 'bg-red-500 text-white border-red-500' : 'bg-transparent text-slate-400 border-slate-300 dark:border-slate-600'}`}>
@@ -107,6 +109,7 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
         </button>
       </div>
 
+      {/* Edit Modal Overlay */}
       {editingId && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height, 100vh)' }}>
            <div className="min-h-full flex items-center justify-center p-4">
@@ -128,17 +131,31 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
         </div>
       )}
 
+      {/* List Items */}
       <div className="space-y-3 pb-8">
         {[...displayedPieces].map((piece) => {
           const isSwiped = swipedId === piece.id;
           
+          // --- DIVIDER RENDERING (Exact match to old version) ---
           if (piece.type === 'divider') {
               return (
                   <div key={piece.id} className="relative overflow-hidden isolate">
+                     {/* Background Delete Button */}
                      <div className={`absolute inset-0 z-0 flex justify-end transition-all duration-200 ${isSwiped ? 'opacity-100' : 'opacity-0 invisible'}`}>
                        <button onClick={() => deletePiece(piece.id)} className="bg-red-500 text-white font-bold w-24 flex items-center justify-center rounded-r-xl my-2">Delete</button>
                      </div>
-                     <div className="relative z-10 swipe-item bg-slate-50 dark:bg-slate-900" onTouchStart={handleTouchStart} onTouchEnd={(e) => handleTouchEnd(e, piece.id)} style={{ backfaceVisibility: 'hidden', willChange: 'transform', transform: isSwiped ? 'translate3d(-6rem,0,0)' : 'translate3d(0,0,0)' }}>
+                     
+                     {/* Foreground Content */}
+                     <div 
+                        className="relative z-10 swipe-item bg-slate-50 dark:bg-slate-900" 
+                        onTouchStart={handleTouchStart} 
+                        onTouchEnd={(e) => handleTouchEnd(e, piece.id)} 
+                        style={{ 
+                            backfaceVisibility: 'hidden', 
+                            willChange: 'transform', 
+                            transform: isSwiped ? 'translate3d(-6rem,0,0)' : 'translate3d(0,0,0)' 
+                        }}
+                     >
                         <div className="flex items-center justify-center gap-4 py-4 opacity-70">
                             <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
                             <span className="font-bold text-slate-400 dark:text-slate-500 text-xs tracking-widest uppercase">{piece.text || piece.hours}</span>
@@ -149,14 +166,17 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
               )
           }
 
+          // --- PIECE RENDERING ---
           const weeksAgo = weeksSince(piece.startDate);
           return (
             <div key={piece.id} className="relative rounded-xl overflow-hidden isolate bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transform-gpu" style={{ backgroundClip: 'padding-box' }}>
+              {/* Background Buttons */}
               <div className={`absolute inset-0 z-0 flex justify-end bg-white dark:bg-slate-800 transition-all duration-200 ${isSwiped ? 'opacity-100' : 'opacity-0 invisible'}`}>
                 <button onClick={() => startEdit(piece)} className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold w-20 flex items-center justify-center">Edit</button>
                 <button onClick={() => deletePiece(piece.id)} className="bg-red-500 text-white font-bold w-24 flex items-center justify-center">Delete</button>
               </div>
 
+              {/* Foreground Content */}
               <div className="absolute inset-0 z-10 bg-white dark:bg-slate-800 shadow-sm p-4 flex items-center justify-between swipe-item" onTouchStart={handleTouchStart} onTouchEnd={(e) => handleTouchEnd(e, piece.id)} style={{ backfaceVisibility: 'hidden', willChange: 'transform', transform: isSwiped ? 'translate3d(-11rem,0,0)' : 'translate3d(0,0,0)' }}>
                 <div className="flex-1 pr-4 pl-2">
                   <h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3>
@@ -170,6 +190,8 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
                   <IconDot status={piece.status || (piece.isRed ? 'red' : 'normal')} />
                 </button>
               </div>
+              
+              {/* Spacer to give height to absolute element */}
               <div className="h-[72px]"></div>
             </div>
           );
