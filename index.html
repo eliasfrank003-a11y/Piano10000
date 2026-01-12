@@ -14,9 +14,9 @@
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Piano v49" />
+  <meta name="apple-mobile-web-app-title" content="Piano v50" />
 
-  <title>Piano v49</title>
+  <title>Piano v50</title>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -71,7 +71,11 @@
 
   <script type="text/babel">
     // =================================================================
-    // APP VERSION: v49
+    // APP VERSION: v50
+    //
+    // NOTE TO FUTURE AI:
+    // Please increment the APP_VERSION constant by 1 whenever you update 
+    // this code or implement new features. This helps track history.
     // =================================================================
 
     const userFirebaseConfig = {
@@ -87,8 +91,6 @@
     const { useState, useEffect, useMemo, useRef } = React;
 
     // --- iOS PWA KEYBOARD FIX (standalone-safe) ---
-    // Uses a CSS var for #root height instead of forcing scroll position.
-    // Avoids visualViewport "scroll" and avoids window.scrollTo, which can cancel focus in standalone PWAs.
     function useIOSViewportFix() {
       useEffect(() => {
         const root = document.getElementById('root');
@@ -134,6 +136,7 @@
       console.warn("Firebase Init Failed:", e);
     }
 
+    // --- ICONS ---
     const IconMusic = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>;
     const IconPlus = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
     const IconList = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
@@ -150,6 +153,7 @@
     const IconCloud = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>;
     const IconLogOut = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
     const IconInfo = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
+    const IconDivide = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>;
 
     const IconDot = ({ status }) => {
         let colorClass = "text-slate-300 dark:text-slate-600";
@@ -211,41 +215,22 @@
 
     function formatAvgTime(str) {
       if (!str) return "";
-      // If already has h/m symbols, assume formatted
       if (str.includes('h') && str.includes('m')) return str;
-      
-      // Try HH:MM:SS
       let match = str.match(/^(\d+):(\d+):(\d+)$/);
-      if (match) {
-        const h = parseInt(match[1], 10);
-        const m = parseInt(match[2], 10);
-        const s = parseInt(match[3], 10);
-        return `${h}h ${m}m ${s}s`;
-      }
-
-      // Try HH:MM
+      if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m ${parseInt(match[3])}s`;
       match = str.match(/^(\d+):(\d+)$/);
-      if (match) {
-        const h = parseInt(match[1], 10);
-        const m = parseInt(match[2], 10);
-        return `${h}h ${m}m`;
-      }
-
-      // Try HHMMSS (5-6 digits)
+      if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m`;
       if (/^\d{5,6}$/.test(str)) {
          const s = parseInt(str.slice(-2), 10);
          const m = parseInt(str.slice(-4, -2), 10);
          const h = parseInt(str.slice(0, -4), 10);
          return `${h}h ${m}m ${s}s`;
       }
-
-      // Try HHMM or HMM (legacy)
       if (/^\d{3,4}$/.test(str)) {
          const m = parseInt(str.slice(-2), 10);
          const h = parseInt(str.slice(0, -2), 10);
          return `${h}h ${m}m`;
       }
-
       return str;
     }
 
@@ -301,7 +286,6 @@
       nextMilestoneDate.setDate(now.getDate() + daysToMilestone);
       const nextMilestoneDateStr = nextMilestoneDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-      // Next 1000k Milestone
       const next1k = (Math.floor(totalPlayed / 1000) + 1) * 1000;
       const hoursTo1k = next1k - totalPlayed;
       const daysTo1k = Math.ceil(hoursTo1k / avgHoursPerDay);
@@ -309,7 +293,6 @@
       next1kDate.setDate(now.getDate() + daysTo1k);
       const next1kDateStr = next1kDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-      // Total Journey Duration
       const totalDays = daysPassed + daysRemaining;
       const totalJourneyYears = Math.floor(totalDays / 365);
       const totalJourneyMonths = Math.floor((totalDays % 365) / 30);
@@ -358,7 +341,8 @@
       intervalMilestones,
       setIntervalMilestones,
       legacyMeta,
-      setLegacyMeta
+      setLegacyMeta,
+      onIntervalAdded // Callback to add separator to Repertoire
     }) => {
       const stats = calculate10kStats(tenKData.hours, tenKData.minutes);
 
@@ -467,7 +451,6 @@
 
       const deleteEditingMilestone = () => {
         if (!editingMilestone) return;
-
         if (editingMilestone.type === 'interval') {
           const rawId = String(editingMilestone.id).replace('interval-', '');
           if (confirm("Delete this milestone?")) {
@@ -477,7 +460,6 @@
           }
           return;
         }
-
         if (editingMilestone.type === 'custom') {
           const rawId = String(editingMilestone.id).replace('custom-', '');
           if (confirm("Delete this milestone?")) {
@@ -487,27 +469,26 @@
           }
           return;
         }
-
         if (editingMilestone.type === 'legacy') {
-          if (confirm("Remove this entry?")) {
-            setLegacyMeta(prev => {
-              const next = { ...prev };
-              delete next[editingMilestone.id];
-              return next;
-            });
-            setIsModalOpen(false);
-            setEditingMilestone(null);
-          }
+           // Legacy deletion handled if needed
+           if (confirm("Remove entry metadata?")) {
+              setLegacyMeta(prev => { const n={...prev}; delete n[editingMilestone.id]; return n; });
+              setIsModalOpen(false);
+              setEditingMilestone(null);
+           }
         }
       };
 
       const saveNewMilestone = () => {
         if (modalType === 'INTERVAL') {
           if (!formState.date || !formState.avg || !formState.hours) return;
+          const h = Number(formState.hours);
           setIntervalMilestones(prev => ([
             ...prev,
-            { id: Date.now(), date: formState.date, hours: Number(formState.hours), avg: formState.avg, description: formState.description || "" }
+            { id: Date.now(), date: formState.date, hours: h, avg: formState.avg, description: formState.description || "" }
           ]));
+          // Trigger logic to add divider to repertoire
+          if (onIntervalAdded) onIntervalAdded(h);
           setIsModalOpen(false);
           return;
         }
@@ -540,20 +521,16 @@
           const remMins = mins % 60;
           return `${hrs}h ${remMins}m`;
         };
-
-        const calculateDrop = () => {
-          const currentTotalHours = stats.totalPlayed;
-          const currentDays = stats.daysPassed;
-          const currentAvgHours = currentTotalHours / currentDays;
-          const nextAvgHours = currentTotalHours / (currentDays + 1);
-          const diffHours = currentAvgHours - nextAvgHours;
-          const diffSeconds = diffHours * 3600;
-          return diffSeconds.toFixed(2);
-        };
+        const currentTotalHours = stats.totalPlayed;
+        const currentDays = stats.daysPassed;
+        const currentAvgHours = currentTotalHours / currentDays;
+        const nextAvgHours = currentTotalHours / (currentDays + 1);
+        const diffHours = currentAvgHours - nextAvgHours;
+        const diffSeconds = diffHours * 3600;
 
         return {
           effort: [1, 3, 5, 10, 20].map(s => ({ seconds: s, cost: calculateEffort(s) })),
-          drop: calculateDrop()
+          drop: diffSeconds.toFixed(2)
         };
       };
 
@@ -594,7 +571,6 @@
             </div>
           </div>
 
-          {/* FORECAST MODAL - Fixed Positioning */}
           {isForecastOpen && forecastData && (
             <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
                <div className="min-h-full flex items-center justify-center p-4">
@@ -602,7 +578,6 @@
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
                       <IconInfo /> Stats Forecast
                     </h3>
-
                     <div className="space-y-4">
                       <div>
                         <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">To Increase Average</div>
@@ -615,7 +590,6 @@
                           ))}
                         </div>
                       </div>
-
                       <div>
                         <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">If You Skip Today</div>
                         <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl p-3 flex justify-between items-center">
@@ -623,202 +597,79 @@
                           <span className="text-sm font-bold text-red-600 dark:text-red-400">{forecastData.drop} sec</span>
                         </div>
                       </div>
-
-                      <button
-                        onClick={() => setIsForecastOpen(false)}
-                        className="w-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold"
-                      >
-                        Close
-                      </button>
+                      <button onClick={() => setIsForecastOpen(false)} className="w-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Close</button>
                     </div>
                   </div>
                </div>
             </div>
           )}
 
-          {/* ADD/EDIT MILESTONE MODAL - Fixed Positioning */}
           {isModalOpen && (
             <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
                <div className="min-h-full flex items-center justify-center p-4">
                   <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
-
                     {modalStep === 'CHOOSE' && (
                       <>
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add Milestone</h3>
-
                         <div className="space-y-2">
-                          <button
-                            onClick={() => {
-                              setModalType('INTERVAL');
-                              setModalStep('FORM');
-                              setFormState({
-                                date: new Date().toISOString().split('T')[0],
-                                hours: String(nextIntervalHours),
-                                avg: '',
-                                title: '',
-                                description: ''
-                              });
-                            }}
-                            className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-left"
-                          >
+                          <button onClick={() => { setModalType('INTERVAL'); setModalStep('FORM'); setFormState({ date: new Date().toISOString().split('T')[0], hours: String(nextIntervalHours), avg: '', title: '', description: '' }); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-left">
                             <div className="text-sm font-bold text-slate-900 dark:text-white">100h Milestone</div>
                           </button>
-
-                          <button
-                            onClick={() => {
-                              setModalType('CUSTOM');
-                              setModalStep('FORM');
-                              setFormState({
-                                date: new Date().toISOString().split('T')[0],
-                                hours: '',
-                                avg: '',
-                                title: '',
-                                description: ''
-                              });
-                            }}
-                            className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-left"
-                          >
+                          <button onClick={() => { setModalType('CUSTOM'); setModalStep('FORM'); setFormState({ date: new Date().toISOString().split('T')[0], hours: '', avg: '', title: '', description: '' }); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-left">
                             <div className="text-sm font-bold text-slate-900 dark:text-white">Custom Milestone</div>
                           </button>
                         </div>
-
-                        <button
-                          onClick={() => setIsModalOpen(false)}
-                          className="w-full mt-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold"
-                        >
-                          Cancel
-                        </button>
+                        <button onClick={() => setIsModalOpen(false)} className="w-full mt-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
                       </>
                     )}
-
                     {modalStep === 'FORM' && modalType !== 'EDIT_DESC' && (
                       <>
-                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">
-                          {modalType === 'INTERVAL' ? '100h Milestone' : 'Custom Milestone'}
-                        </h3>
-
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">{modalType === 'INTERVAL' ? '100h Milestone' : 'Custom Milestone'}</h3>
                         <div className="space-y-3">
                           <div>
                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Date</label>
-                            <input
-                              type="date"
-                              value={formState.date}
-                              onChange={e => setFormState({ ...formState, date: e.target.value })}
-                              className={inputClass}
-                              style={{ width: '100%', minWidth: 0 }}
-                            />
+                            <input type="date" value={formState.date} onChange={e => setFormState({ ...formState, date: e.target.value })} className={inputClass} style={{ width: '100%', minWidth: 0 }} />
                           </div>
-
                           {modalType === 'INTERVAL' && (
                             <>
                               <div>
                                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Hours</label>
-                                <input
-                                  type="number"
-                                  value={formState.hours}
-                                  onChange={e => setFormState({ ...formState, hours: e.target.value })}
-                                  className={inputClass}
-                                  inputMode="numeric"
-                                />
+                                <input type="number" value={formState.hours} onChange={e => setFormState({ ...formState, hours: e.target.value })} className={inputClass} inputMode="numeric" />
                               </div>
-
                               <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Avg play time/day (hh:mm:ss)</label>
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  placeholder="01:24:00"
-                                  value={formState.avg}
-                                  onChange={e => setFormState({ ...formState, avg: e.target.value })}
-                                  className={inputClass}
-                                />
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Avg play time/day</label>
+                                <input type="text" inputMode="numeric" placeholder="01:24:00" value={formState.avg} onChange={e => setFormState({ ...formState, avg: e.target.value })} className={inputClass} />
                               </div>
                             </>
                           )}
-
                           {modalType === 'CUSTOM' && (
                             <>
-                              <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">At hours</label>
-                                <input
-                                  type="number"
-                                  placeholder="1050"
-                                  value={formState.hours}
-                                  onChange={e => setFormState({ ...formState, hours: e.target.value })}
-                                  className={inputClass}
-                                />
-                              </div>
-
-                              <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Name</label>
-                                <input
-                                  type="text"
-                                  placeholder="New Piano"
-                                  value={formState.title}
-                                  onChange={e => setFormState({ ...formState, title: e.target.value })}
-                                  className={inputClass}
-                                />
-                              </div>
+                              <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">At hours</label><input type="number" placeholder="1050" value={formState.hours} onChange={e => setFormState({ ...formState, hours: e.target.value })} className={inputClass} /></div>
+                              <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Name</label><input type="text" placeholder="New Piano" value={formState.title} onChange={e => setFormState({ ...formState, title: e.target.value })} className={inputClass} /></div>
                             </>
                           )}
-
-                          <div>
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Description (optional)</label>
-                            <textarea
-                              value={formState.description}
-                              onChange={e => setFormState({ ...formState, description: e.target.value })}
-                              className={`${inputClass} h-24`}
-                            />
-                          </div>
-
+                          <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Description</label><textarea value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} className={`${inputClass} h-24`} /></div>
                           <div className="flex gap-2 pt-1">
                             <button onClick={saveNewMilestone} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
-                            <button
-                              onClick={() => { setModalStep('CHOOSE'); setModalType(null); setEditingMilestone(null); }}
-                              className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold"
-                            >
-                              Back
-                            </button>
+                            <button onClick={() => { setModalStep('CHOOSE'); setModalType(null); setEditingMilestone(null); }} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Back</button>
                           </div>
                         </div>
                       </>
                     )}
-
                     {modalStep === 'FORM' && modalType === 'EDIT_DESC' && editingMilestone && (
                       <>
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Edit Description</h3>
                         <div className="text-xs text-slate-400 mb-4">{editingMilestone.title || `${editingMilestone.hours} Hours`}</div>
-
                         <div className="space-y-3">
-                          <textarea
-                            value={formState.description}
-                            onChange={e => setFormState({ ...formState, description: e.target.value })}
-                            className={`${inputClass} h-28`}
-                            placeholder="Description..."
-                          />
-
+                          <textarea value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} className={`${inputClass} h-28`} placeholder="Description..." />
                           <div className="flex gap-2">
                             <button onClick={saveEditDescription} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
-
-                            <button
-                              onClick={deleteEditingMilestone}
-                              className="px-4 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 py-3 rounded-xl text-sm font-bold"
-                              title="Delete"
-                            >
-                              <IconTrash />
-                            </button>
-
-                            <button
-                              onClick={() => { setIsModalOpen(false); setEditingMilestone(null); }}
-                              className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold"
-                            >
-                              Cancel
-                            </button>
+                            <button onClick={deleteEditingMilestone} className="px-4 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 py-3 rounded-xl text-sm font-bold" title="Delete"><IconTrash /></button>
+                            <button onClick={() => { setIsModalOpen(false); setEditingMilestone(null); }} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
                           </div>
                         </div>
                       </>
                     )}
-
                   </div>
                </div>
             </div>
@@ -839,16 +690,15 @@
                 <div className="flex justify-between mt-2 text-xs text-slate-400 font-mono items-center">
                   <div className="flex items-center gap-2">
                     <span>Avg: {stats.avgDisplay}/day</span>
-                    <button onClick={() => setIsForecastOpen(true)} className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300">
-                      <IconInfo />
-                    </button>
+                    <button onClick={() => setIsForecastOpen(true)} className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300"><IconInfo /></button>
                   </div>
                   <span>Day {stats.daysPassed}</span>
                 </div>
               </div>
 
               <div className="relative mt-6 pb-12">
-                <div className="absolute left-8 top-12 bottom-10 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0"></div>
+                {/* CSS FIX FOR TIMELINE CONNECTION */}
+                <div className="absolute left-8 top-12 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0" style={{ marginBottom: '1.5rem' }}></div>
 
                 <div className="relative z-10 mb-8 pl-16">
                   <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-50 dark:ring-slate-900"></div>
@@ -858,12 +708,8 @@
                       <div className="text-lg font-bold text-slate-700 dark:text-slate-300">{stats.finishDate}</div>
                     </div>
                     <div className="text-right flex flex-col items-end justify-center gap-0.5">
-                        <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                            REMAINING {stats.remainingFormatted}
-                        </div>
-                        <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                            TOTAL {stats.totalJourneyFormatted}
-                        </div>
+                        <div className="text-xs font-bold text-slate-500 dark:text-slate-400">REMAINING {stats.remainingFormatted}</div>
+                        <div className="text-xs font-bold text-slate-500 dark:text-slate-400">TOTAL {stats.totalJourneyFormatted}</div>
                     </div>
                   </div>
                 </div>
@@ -873,9 +719,7 @@
                   <div className="bg-gradient-to-r from-purple-50 to-white dark:from-slate-800 dark:to-slate-800 border border-purple-200 dark:border-purple-900/30 rounded-xl p-4 shadow-sm">
                     <div className="flex justify-between items-center">
                       <div>
-                        <div className="text-purple-600 dark:text-purple-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                          <IconCrown /> Next 1k
-                        </div>
+                        <div className="text-purple-600 dark:text-purple-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><IconCrown /> Next 1k</div>
                         <div className="text-xl font-bold text-slate-900 dark:text-white">{stats.next1k} Hours</div>
                       </div>
                       <div className="text-right">
@@ -891,9 +735,7 @@
                   <div className="bg-gradient-to-r from-yellow-50 to-white dark:from-slate-800 dark:to-slate-800 border border-yellow-200 dark:border-yellow-900/30 rounded-xl p-4 shadow-sm">
                     <div className="flex justify-between items-center">
                       <div>
-                        <div className="text-yellow-600 dark:text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                          <IconStar /> Next Goal
-                        </div>
+                        <div className="text-yellow-600 dark:text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><IconStar /> Next Goal</div>
                         <div className="text-xl font-bold text-slate-900 dark:text-white">{stats.nextMilestone} Hours</div>
                       </div>
                       <div className="text-right">
@@ -911,47 +753,25 @@
                       <div className="text-green-600 dark:text-green-400 text-xs font-bold uppercase tracking-wider">Current</div>
                       <div className="text-xs text-slate-400">Today</div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {Math.floor(stats.totalPlayed)} <span className="text-sm font-normal text-slate-500">Hours</span>
-                    </div>
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white">{Math.floor(stats.totalPlayed)} <span className="text-sm font-normal text-slate-500">Hours</span></div>
                   </div>
                 </div>
 
                 {allMilestones.map((milestone, idx) => {
                   const isExpanded = expandedId === milestone.id;
-
                   return (
-                    <div
-                      key={milestone.id || idx}
-                      onClick={() => toggleExpand(milestone.id)}
-                      className="relative z-10 mb-8 pl-16 cursor-pointer"
-                    >
+                    <div key={milestone.id || idx} onClick={() => toggleExpand(milestone.id)} className="relative z-10 mb-8 pl-16 cursor-pointer">
                       <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div>
-
                       <div className="flex-1">
                         <div className="flex justify-between items-baseline">
-                          <span className={`font-bold text-slate-700 dark:text-slate-300 ${milestone.type === 'custom' ? 'text-sm' : 'text-lg'}`}>
-                            {milestone.title}
-                          </span>
-
-                          {milestone.type === 'custom'
-                            ? <span className="text-xs text-slate-400">{milestone.hours} h</span>
-                            : <span className="text-xs text-slate-400">{milestone.avg}/day</span>
-                          }
+                          <span className={`font-bold text-slate-700 dark:text-slate-300 ${milestone.type === 'custom' ? 'text-sm' : 'text-lg'}`}>{milestone.title}</span>
+                          {milestone.type === 'custom' ? <span className="text-xs text-slate-400">{milestone.hours} h</span> : <span className="text-xs text-slate-400">{milestone.avg}/day</span>}
                         </div>
-
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          {milestone.date ? `${calculateDaysAgo(milestone.date)} days ago` : ''}
-                        </div>
-
+                        <div className="text-xs text-slate-400 mt-0.5">{milestone.date ? `${calculateDaysAgo(milestone.date)} days ago` : ''}</div>
                         {isExpanded && (
                           <div className="mt-3 text-sm text-slate-600 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700 pt-2 flex justify-between items-start animate-in fade-in">
-                            <div className="flex-1 mr-2 whitespace-pre-wrap">
-                              {milestone.description || <span className="text-slate-400 italic">No description...</span>}
-                            </div>
-                            <button onClick={(e) => { e.stopPropagation(); openEdit(milestone); }} className="text-slate-400 hover:text-indigo-500 p-1">
-                              <IconEdit />
-                            </button>
+                            <div className="flex-1 mr-2 whitespace-pre-wrap">{milestone.description || <span className="text-slate-400 italic">No description...</span>}</div>
+                            <button onClick={(e) => { e.stopPropagation(); openEdit(milestone); }} className="text-slate-400 hover:text-indigo-500 p-1"><IconEdit /></button>
                           </div>
                         )}
                       </div>
@@ -962,25 +782,18 @@
                 <div className="relative z-10 pl-16">
                   <div className="absolute left-8 top-1/2 -translate-x-1/2 w-4 h-full bg-slate-50 dark:bg-slate-900 z-0"></div>
                   <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-900 dark:bg-white border-2 border-slate-50 dark:border-slate-900 z-10"></div>
-
                   <div className="flex justify-between items-center">
                     <div>
                       <div className="text-sm font-bold text-slate-900 dark:text-white">Journey Started</div>
                       <div className="text-xs text-slate-400">Feb 1, 2024</div>
                     </div>
-
-                    <div className="text-xs text-slate-400">
-                      {journeyAge.text}
-                    </div>
+                    <div className="text-xs text-slate-400">{journeyAge.text}</div>
                   </div>
                 </div>
-
               </div>
             </>
           ) : (
-            <div className="text-center text-slate-400 mt-10 p-6 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">
-              Enter your total hours above to generate your timeline.
-            </div>
+            <div className="text-center text-slate-400 mt-10 p-6 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">Enter your total hours above to generate your timeline.</div>
           )}
         </div>
       );
@@ -990,38 +803,19 @@
       const { count, target } = repState;
       const updateCount = (newCount) => setRepState(prev => ({ ...prev, count: newCount }));
       const setTarget = (val) => setRepState(prev => ({ ...prev, target: val, count: val }));
-
       const triggerConfetti = () => {
         const duration = 3000, animationEnd = Date.now() + duration;
         const randomInOut = (min, max) => Math.random() * (max - min) + min;
         const frame = () => {
           if (animationEnd - Date.now() <= 0) return;
-          confetti({
-            particleCount: 3,
-            startVelocity: 0,
-            ticks: 300,
-            origin: { x: Math.random(), y: -0.1 },
-            gravity: randomInOut(0.5, 1.0),
-            scalar: randomInOut(0.8, 1.2),
-            drift: randomInOut(-0.4, 0.4),
-            colors: ['#6366f1', '#a855f7', '#ec4899', '#3b82f6', '#14b8a6']
-          });
+          confetti({ particleCount: 3, startVelocity: 0, ticks: 300, origin: { x: Math.random(), y: -0.1 }, gravity: randomInOut(0.5, 1.0), scalar: randomInOut(0.8, 1.2), drift: randomInOut(-0.4, 0.4), colors: ['#6366f1', '#a855f7', '#ec4899', '#3b82f6', '#14b8a6'] });
           requestAnimationFrame(frame);
         };
         frame();
       };
-
-      const handleTap = () => {
-        if (count === 1) triggerConfetti();
-        updateCount(count > 0 ? count - 1 : 0);
-      };
-
+      const handleTap = () => { if (count === 1) triggerConfetti(); updateCount(count > 0 ? count - 1 : 0); };
       const handleReset = () => updateCount(parseInt(target) || 5);
-      const handleTargetChange = (e) => {
-        const val = parseInt(e.target.value) || 0;
-        setRepState(prev => ({ ...prev, target: val, count: val }));
-      };
-
+      const handleTargetChange = (e) => { const val = parseInt(e.target.value) || 0; setRepState(prev => ({ ...prev, target: val, count: val })); };
       return (
         <div className="flex-1 flex flex-col p-6 animate-in fade-in zoom-in duration-300 h-full scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex gap-2 mb-6">
@@ -1032,13 +826,11 @@
               <input type="number" value={target} onChange={handleTargetChange} className="w-12 bg-transparent text-right font-bold text-slate-900 dark:text-white outline-none py-3" />
             </div>
           </div>
-
           <button onClick={handleTap} className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 active:scale-[0.98] transition-transform rounded-3xl shadow-xl flex flex-col items-center justify-center text-white mb-6 relative overflow-hidden group">
             <div className="absolute inset-0 bg-white/10 opacity-0 group-active:opacity-100 transition-opacity"></div>
             <div className="text-9xl font-bold tracking-tighter drop-shadow-md select-none">{count}</div>
             <div className="text-white/60 font-medium uppercase tracking-widest mt-2 text-sm">Tap to Reduce</div>
           </button>
-
           <button onClick={handleReset} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 font-bold flex items-center justify-center gap-2 active:bg-slate-200 dark:active:bg-slate-700 transition-colors shrink-0">
             <IconRefresh /> Reset Counter
           </button>
@@ -1077,7 +869,9 @@
     );
 
     const RepertoireView = ({ sortedPieces, deletePiece, editPiece, toggleRedList, isRedListMode, cyclePieceStatus }) => {
-      const displayedPieces = isRedListMode ? sortedPieces.filter(p => p.status === 'red') : sortedPieces;
+      const displayedPieces = isRedListMode 
+        ? sortedPieces.filter(p => p.status === 'red' && p.type !== 'divider') 
+        : sortedPieces;
 
       const [swipedId, setSwipedId] = useState(null);
       const [editingId, setEditingId] = useState(null);
@@ -1085,7 +879,6 @@
       const touchStartX = useRef(null);
 
       const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-
       const handleTouchEnd = (e, id) => {
         if (!touchStartX.current) return;
         const endX = e.changedTouches[0].clientX;
@@ -1099,7 +892,6 @@
         setEditingId(piece.id);
         setEditForm({ title: piece.title, date: piece.startDate || '' });
       };
-
       const saveEdit = () => {
         if (editForm.title && editingId) {
           editPiece(editingId, { title: editForm.title, startDate: editForm.date });
@@ -1107,8 +899,18 @@
           setSwipedId(null);
         }
       };
-
       const clearDate = () => setEditForm({ ...editForm, date: '' });
+
+      // Identify chronological indices (ignoring dividers)
+      // Since sortedPieces is currently Newest(Top) -> Oldest(Bottom), index 0 is newest.
+      // The user likely thinks in "Piece 1, 2, 3" as creation order.
+      // Let's map IDs to a chronological number (1=oldest).
+      const pieceIndices = useMemo(() => {
+         const allNormalPieces = sortedPieces.filter(p => p.type !== 'divider').sort((a,b) => a.id - b.id); // Oldest first
+         const map = {};
+         allNormalPieces.forEach((p, idx) => { map[p.id] = idx + 1; });
+         return map;
+      }, [sortedPieces]);
 
       return (
         <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
@@ -1119,7 +921,6 @@
             </button>
           </div>
 
-          {/* EDIT PIECE MODAL - Fixed Positioning */}
           {editingId && (
             <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
                <div className="min-h-full flex items-center justify-center p-4">
@@ -1143,8 +944,23 @@
 
           <div className="space-y-3 pb-8">
             {[...displayedPieces].sort((a, b) => b.id - a.id).map((piece) => {
+              if (piece.type === 'divider') {
+                  // Divider Rendering
+                  return (
+                      <div key={piece.id} className="flex items-center justify-center gap-4 py-4 opacity-70">
+                          <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
+                          <span className="font-bold text-slate-400 dark:text-slate-500 text-xs tracking-widest">{piece.hours} HOURS</span>
+                          <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
+                          {/* Hidden delete for maintenance if needed? User can delete via swipe maybe not ideal. Let's allow swipe delete on dividers too */}
+                          <button onClick={() => deletePiece(piece.id)} className="text-slate-300 hover:text-red-500"><IconTrash /></button>
+                      </div>
+                  )
+              }
+
+              // Normal Piece Rendering
               const isSwiped = swipedId === piece.id;
               const weeksAgo = weeksSince(piece.startDate);
+              const chronoIndex = pieceIndices[piece.id];
 
               return (
                 <div
@@ -1168,7 +984,10 @@
                     }}
                   >
                     <div className="flex-1 pr-4 pl-2">
-                      <h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3>
+                      <div className="flex items-baseline gap-2">
+                          {chronoIndex && <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600">#{chronoIndex}</span>}
+                          <h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3>
+                      </div>
                       {weeksAgo && (
                         <div className="text-[10px] text-slate-400 mt-1 font-mono">
                           Started: {formatDisplayDate(piece.startDate)} • {weeksAgo}
@@ -1190,11 +1009,15 @@
       );
     };
 
-    const LeaderboardView = ({ sortedPieces }) => (
+    const LeaderboardView = ({ sortedPieces }) => {
+      // Filter out dividers for leaderboard
+      const validPieces = sortedPieces.filter(p => p.type !== 'divider');
+
+      return (
       <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 px-2">Most Played</div>
         <div className="space-y-3 pb-8">
-          {sortedPieces.map((piece, index) => (
+          {validPieces.map((piece, index) => (
             <div key={piece.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
               <div className="absolute -left-2 -bottom-4 text-6xl font-bold text-slate-50 dark:text-slate-700/50 pointer-events-none z-0">{index + 1}</div>
               <div className="flex-1 pr-4 z-10 pl-2">
@@ -1203,10 +1026,11 @@
               </div>
             </div>
           ))}
-          {sortedPieces.length === 0 && <div className="text-center text-slate-400 mt-10 p-6">No pieces yet. Add one below!</div>}
+          {validPieces.length === 0 && <div className="text-center text-slate-400 mt-10 p-6">No pieces yet. Add one below!</div>}
         </div>
       </div>
-    );
+      );
+    };
 
     const SettingsView = ({ syncStatus, isFirebaseEnabled, syncId, setSyncId, handleLogout, isDark, setIsDark }) => {
       const [localInput, setLocalInput] = useState("");
@@ -1270,7 +1094,7 @@
           </div>
 
           <div className="px-2 text-center text-xs text-slate-400">
-            Piano v49<br />Build: 11.01.2026
+            Piano v50<br />Build: 12.01.2026
           </div>
         </div>
       );
@@ -1337,12 +1161,10 @@
             if (doc.exists) {
               const data = doc.data();
               if (data.pianoRepertoire_v9) {
-                // Ensure data from cloud is sanitized so 'Red List' logic works even for old items
-                // Strict sync between status and isRed
                 const safeRepertoire = data.pianoRepertoire_v9.map(p => {
+                    if (p.type === 'divider') return p; 
                     let status = p.status;
                     if (!status) status = p.isRed ? 'red' : 'normal';
-                    // Force consistency
                     if (status === 'red' && !p.isRed) p.isRed = true;
                     if (p.isRed && status === 'normal') status = 'red';
                     return { ...p, status, isRed: status === 'red' };
@@ -1373,11 +1195,10 @@
       const [pieces, setPieces] = useState(() => {
         const saved = localStorage.getItem('pianoRepertoire_v9');
         let data = saved ? JSON.parse(saved) : INITIAL_REPERTOIRE;
-        // Strict consistency check on load
         data = data.map(p => {
+            if (p.type === 'divider') return p;
             let status = p.status;
             if (!status) status = p.isRed ? 'red' : 'normal';
-            // Force consistency
             if (status === 'red' && !p.isRed) p.isRed = true;
             if (p.isRed && status === 'normal') status = 'red';
             return { ...p, status, isRed: status === 'red' };
@@ -1424,12 +1245,20 @@
       const [newPieceTitle, setNewPieceTitle] = useState("");
       const [newPieceDate, setNewPieceDate] = useState("");
       const [isAdding, setIsAdding] = useState(false);
+      
+      // Divider Modal State
+      const [isAddingDivider, setIsAddingDivider] = useState(false);
+      const [dividerHours, setDividerHours] = useState("");
+      const [dividerAfterId, setDividerAfterId] = useState("");
 
       const [isRedListMode, setIsRedListMode] = useState(false);
-
       const [sessionFilter, setSessionFilter] = useState(false);
 
-      const sortedPieces = useMemo(() => [...pieces].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)), [pieces]);
+      const sortedPieces = useMemo(() => {
+          // Sort logic handled in Views, but here we provide playCount sort for leaderboard
+          // For logic needing top-play, filter out dividers
+          return [...pieces].filter(p => p.type !== 'divider').sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+      }, [pieces]);
 
       useEffect(() => { saveData('pianoRepertoire_v9', pieces); }, [pieces]);
       useEffect(() => { saveData('pianoHistory_v1', history); }, [history]);
@@ -1441,25 +1270,19 @@
 
       useEffect(() => { if (syncId) localStorage.setItem('pianoSyncId', syncId); }, [syncId]);
 
-      // Check for day change on visibility change (re-opening app from background)
       useEffect(() => {
         const checkDay = () => {
           const today = new Date().toDateString();
-          if (dailyStats.date !== today) {
-            setDailyStats({ date: today, count: 0 });
-          }
+          if (dailyStats.date !== today) setDailyStats({ date: today, count: 0 });
         };
-
-        // Check immediately
         checkDay();
-
         document.addEventListener('visibilitychange', checkDay);
         window.addEventListener('focus', checkDay);
         return () => {
             document.removeEventListener('visibilitychange', checkDay);
             window.removeEventListener('focus', checkDay);
         };
-      }, [dailyStats]); // Re-bind if dailyStats changes (though logic mainly depends on date)
+      }, [dailyStats]);
 
       useEffect(() => {
         if (isDark) {
@@ -1476,12 +1299,11 @@
       }, [isDark]);
 
       const recordPlay = (piece) => {
+        if (piece.type === 'divider') return;
         const now = Date.now();
         setPieces(pieces.map(p => p.id === piece.id ? { ...p, lastPlayed: now, playCount: (p.playCount || 0) + 1 } : p));
-
         const newHistoryEntry = { historyId: Date.now(), pieceId: piece.id, title: piece.title, timestamp: now };
         setHistory([newHistoryEntry, ...history]);
-
         const todayStr = new Date().toDateString();
         setDailyStats(prev => {
           if (prev.date !== todayStr) return { date: todayStr, count: 1 };
@@ -1495,10 +1317,11 @@
           isRed = filterRed;
           setSessionFilter(filterRed);
         }
-
+        // Filter out dividers
+        const validPool = pieces.filter(p => p.type !== 'divider');
         const pool = isRed
-            ? pieces.filter(p => p.status === 'red')
-            : pieces.filter(p => p.status !== 'green');
+            ? validPool.filter(p => p.status === 'red')
+            : validPool.filter(p => p.status !== 'green');
 
         if (pool.length === 0) return alert(isRed ? "Red List is empty!" : "No eligible pieces available!");
 
@@ -1514,15 +1337,8 @@
         recordPlay(winner);
       };
 
-      const stopSession = () => {
-        setCurrentPiece(null);
-        setSessionFilter(false);
-      };
-
-      const replayPieceFromHistory = (pieceId) => {
-        const piece = pieces.find(p => p.id === pieceId);
-        if (piece) recordPlay(piece);
-      };
+      const stopSession = () => { setCurrentPiece(null); setSessionFilter(false); };
+      const replayPieceFromHistory = (pieceId) => { const piece = pieces.find(p => p.id === pieceId); if (piece) recordPlay(piece); };
 
       const deleteHistoryEntry = (historyId, pieceId) => {
         const entry = history.find(h => h.historyId === historyId);
@@ -1535,7 +1351,9 @@
       };
 
       const handleStartAdd = () => {
-        setNewPieceTitle(`${pieces.length + 1}. `);
+        // Find existing non-divider pieces count for naming suggestion
+        const existingCount = pieces.filter(p => p.type !== 'divider').length;
+        setNewPieceTitle(`${existingCount + 1}. `);
         setNewPieceDate(new Date().toISOString().split('T')[0]);
         setIsAdding(true);
       };
@@ -1544,6 +1362,7 @@
         if (!newPieceTitle.trim()) return;
         const newPiece = {
             id: Date.now(),
+            type: 'piece',
             title: newPieceTitle,
             startDate: newPieceDate,
             lastPlayed: 0,
@@ -1556,7 +1375,41 @@
         setIsAdding(false);
       };
 
-      const deletePiece = (id) => { if (confirm("Delete this piece from your repertoire?")) setPieces(pieces.filter(p => p.id !== id)); };
+      // Add a divider. If 'afterPieceId' is null, it adds to top.
+      // If provided, it inserts it strictly between pieces based on ID sorting logic.
+      // The List view sorts by ID desc (Newest Top). 
+      // To insert "between 4 and 5", we need an ID between Piece4.id and Piece5.id.
+      const addDivider = (hours, afterPieceId) => {
+        let newId = Date.now();
+        
+        if (afterPieceId) {
+            // Sort chronologically (Oldest=1) to find neighbors
+            const sorted = [...pieces].sort((a,b) => a.id - b.id);
+            const index = sorted.findIndex(p => p.id === Number(afterPieceId));
+            
+            if (index !== -1 && index < sorted.length - 1) {
+                // Insert between current and next
+                const prevId = sorted[index].id;
+                const nextId = sorted[index+1].id;
+                newId = (prevId + nextId) / 2;
+            } else if (index === sorted.length - 1) {
+                // It's the newest, just use Date.now() or slightly more than last
+                newId = Date.now();
+            }
+        }
+
+        const newDivider = {
+            id: newId,
+            type: 'divider',
+            hours: hours
+        };
+        setPieces(prev => [newDivider, ...prev]);
+        setIsAddingDivider(false);
+        setDividerHours("");
+        setDividerAfterId("");
+      };
+
+      const deletePiece = (id) => { if (confirm("Delete this?")) setPieces(pieces.filter(p => p.id !== id)); };
       const editPiece = (id, updated) => setPieces(pieces.map(p => p.id === id ? { ...p, ...updated } : p));
 
       const cyclePieceStatus = (id) => {
@@ -1567,7 +1420,6 @@
             if (current === 'normal') next = 'red';
             else if (current === 'red') next = 'green';
             else if (current === 'green') next = 'normal';
-
             return { ...p, status: next, isRed: next === 'red' };
          }));
       };
@@ -1592,7 +1444,6 @@
       };
 
       const formatTime = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
       const cycleMode = () => {
         if (appMode === 'REPERTOIRE') setAppMode('10K');
         else if (appMode === '10K') setAppMode('REPS');
@@ -1609,14 +1460,13 @@
                 {appMode === 'REPS' && <><IconRepeat /> Repetitions <IconChevronDown /></>}
               </h1>
             </button>
-
             {appMode === 'REPERTOIRE' && (
               <div className="flex gap-2 bg-slate-100 dark:bg-slate-700 p-1 rounded-full items-center">
                 <button onClick={() => setView('PRACTICE')} className={`p-2 rounded-full transition-colors ${view === 'PRACTICE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconPlay /></button>
                 <button onClick={() => setView('REPERTOIRE')} className={`p-2 rounded-full transition-colors ${view === 'REPERTOIRE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconList /></button>
                 <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconCrown /></button>
                 <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconClock /></button>
-                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v49</button>
+                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v50</button>
               </div>
             )}
           </div>
@@ -1625,7 +1475,7 @@
             <div className="bg-slate-100 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 py-1.5 px-4 flex justify-center items-center gap-4 text-xs font-mono text-slate-500 dark:text-slate-400 shrink-0 z-0">
               <span>Today: <strong className="text-slate-700 dark:text-slate-200">{dailyStats.count}</strong></span>
               <span className="text-slate-300 dark:text-slate-600">|</span>
-              <span>Total: <strong className="text-slate-700 dark:text-slate-200">{pieces.reduce((sum, p) => sum + (p.playCount || 0), 0)}</strong></span>
+              <span>Total: <strong className="text-slate-700 dark:text-slate-200">{pieces.filter(p=>p.type!=='divider').reduce((sum, p) => sum + (p.playCount || 0), 0)}</strong></span>
             </div>
           )}
 
@@ -1642,14 +1492,13 @@
                 setIntervalMilestones={setIntervalMilestones}
                 legacyMeta={legacyMeta}
                 setLegacyMeta={setLegacyMeta}
+                onIntervalAdded={(hours) => addDivider(hours, null)}
               />
             )}
-
             {appMode === 'REPS' && <RepetitionsView repState={repState} setRepState={setRepState} />}
-
             {appMode === 'REPERTOIRE' && (
               <>
-                {view === 'PRACTICE' && <PracticeView currentPiece={currentPiece} pickPiece={pickPiece} stopSession={stopSession} redListCount={pieces.filter(p => p.status === 'red').length} />}
+                {view === 'PRACTICE' && <PracticeView currentPiece={currentPiece} pickPiece={pickPiece} stopSession={stopSession} redListCount={pieces.filter(p => p.status === 'red' && p.type !== 'divider').length} />}
                 {view === 'REPERTOIRE' && <RepertoireView sortedPieces={pieces} deletePiece={deletePiece} editPiece={editPiece} toggleRedList={() => setIsRedListMode(!isRedListMode)} isRedListMode={isRedListMode} cyclePieceStatus={cyclePieceStatus} />}
                 {view === 'LEADERBOARD' && <LeaderboardView sortedPieces={sortedPieces} />}
                 {view === 'HISTORY' && <HistoryView history={history} replayPieceFromHistory={replayPieceFromHistory} deleteHistoryEntry={deleteHistoryEntry} formatTime={formatTime} />}
@@ -1658,7 +1507,6 @@
             )}
           </div>
 
-          {/* ADD PIECE MODAL - Fixed Positioning */}
           {isAdding && (
              <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
                 <div className="min-h-full flex items-center justify-center p-4">
@@ -1667,22 +1515,11 @@
                      <div className="space-y-4 pb-32">
                        <div>
                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Title</label>
-                         <input
-                           autoFocus
-                           value={newPieceTitle}
-                           onChange={(e) => setNewPieceTitle(e.target.value)}
-                           placeholder="e.g. 27. Rachmaninoff..."
-                           className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-lg outline-none focus:border-indigo-500"
-                         />
+                         <input autoFocus value={newPieceTitle} onChange={(e) => setNewPieceTitle(e.target.value)} placeholder="e.g. 27. Rachmaninoff..." className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-lg outline-none focus:border-indigo-500" />
                        </div>
                        <div>
                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Date Started</label>
-                         <input
-                           type="date"
-                           value={newPieceDate}
-                           onChange={(e) => setNewPieceDate(e.target.value)}
-                           className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-sm outline-none"
-                         />
+                         <input type="date" value={newPieceDate} onChange={(e) => setNewPieceDate(e.target.value)} className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-sm outline-none" />
                        </div>
                        <div className="flex gap-2 pt-2">
                          <button onClick={addNewPiece} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold">Save</button>
@@ -1694,10 +1531,42 @@
              </div>
           )}
 
+          {isAddingDivider && (
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
+               <div className="min-h-full flex items-center justify-center p-4">
+                 <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add Divider</h3>
+                    <div className="space-y-4 pb-12">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Hours</label>
+                        <input type="number" autoFocus value={dividerHours} onChange={(e) => setDividerHours(e.target.value)} placeholder="e.g. 100" className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-lg outline-none focus:border-indigo-500" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Insert After Piece (Chronological)</label>
+                        <select value={dividerAfterId} onChange={e => setDividerAfterId(e.target.value)} className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-sm outline-none">
+                            <option value="">At the top (Newest)</option>
+                            {[...pieces].filter(p => p.type !== 'divider').sort((a,b) => a.id - b.id).map((p, idx) => (
+                                <option key={p.id} value={p.id}>{idx + 1}. {p.title}</option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button onClick={() => addDivider(dividerHours, dividerAfterId)} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold">Add</button>
+                        <button onClick={() => setIsAddingDivider(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-semibold">Cancel</button>
+                      </div>
+                    </div>
+                 </div>
+               </div>
+            </div>
+          )}
+
           {appMode === 'REPERTOIRE' && (view === 'PRACTICE' || view === 'REPERTOIRE' || view === 'LEADERBOARD') && (
-            <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 z-10 w-full" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                <button onClick={handleStartAdd} className="flex items-center justify-center gap-2 w-full p-4 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors">
-                  <IconPlus /> Add New Piece
+            <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 z-10 w-full flex gap-2" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                <button onClick={handleStartAdd} className="flex-1 flex items-center justify-center gap-2 p-4 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors border border-dashed border-slate-300 dark:border-slate-600 rounded-xl">
+                  <IconPlus /> Piece
+                </button>
+                <button onClick={() => setIsAddingDivider(true)} className="flex-1 flex items-center justify-center gap-2 p-4 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors border border-dashed border-slate-300 dark:border-slate-600 rounded-xl">
+                  <IconDivide /> Divider
                 </button>
             </div>
           )}
