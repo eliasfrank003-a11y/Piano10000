@@ -1,15 +1,30 @@
 import React from 'react';
-import { Play, Square, Circle } from 'lucide-react';
 
-// Restoring your exact Icon components using Lucide to match the look
-const IconStop = () => <Square size={20} fill="currentColor" className="text-slate-700 dark:text-slate-300" />;
+// --- EXACT ICONS FROM LEGACY ---
 const IconDot = ({ status }) => {
     let colorClass = "text-slate-300 dark:text-slate-600";
     let fill = "none";
-    if (status === 'red') { colorClass = "text-red-500"; fill = "currentColor"; }
-    else if (status === 'green') { colorClass = "text-green-500"; fill = "currentColor"; }
-    return <Circle size={12} fill={fill} className={colorClass} strokeWidth={4} />;
+
+    if (status === 'red') {
+        colorClass = "text-red-500";
+        fill = "currentColor";
+    } else if (status === 'green') {
+        colorClass = "text-green-500";
+        fill = "currentColor";
+    }
+
+    return (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={colorClass}>
+            <circle cx="12" cy="12" r="9"></circle>
+        </svg>
+    );
 };
+
+const IconStop = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+    </svg>
+);
 
 const Practice = ({ currentPiece, pickPiece, stopSession, redListCount }) => {
   return (
@@ -20,7 +35,9 @@ const Practice = ({ currentPiece, pickPiece, stopSession, redListCount }) => {
           <div className="text-3xl font-serif font-medium text-slate-900 dark:text-white leading-tight mb-8">{currentPiece.title}</div>
           <div className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-500 dark:text-slate-400">Total Plays: {currentPiece.playCount}</div>
         </div>
-      ) : <div className="text-slate-400 dark:text-slate-500 italic">Tap below to pick a piece</div>}
+      ) : (
+        <div className="text-slate-400 dark:text-slate-500 italic">Tap below to pick a piece</div>
+      )}
 
       <div className="flex flex-col gap-4 w-full max-w-sm">
         <button onClick={() => pickPiece()} className="bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-500 dark:active:bg-indigo-600 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all transform active:scale-95 w-full">
