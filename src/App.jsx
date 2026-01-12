@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Tracker from './components/Tracker';
 import Repertoire from './components/Repertoire';
 import Repetitions from './components/Repetitions';
-import Settings from './components/Settings';
+import Practice from './components/Practice';
 import History from './components/History';
 import Leaderboard from './components/Leaderboard';
-import { Play, List, Clock, Settings as SettingsIcon, Music, Timer, RotateCw, StopCircle, Crown } from 'lucide-react';
+import Settings from './components/Settings';
+import { Play, List, Crown, Clock, Settings as SettingsIcon, Music, Timer, RotateCw, ChevronDown, Plus, Divide } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
 
@@ -20,18 +21,33 @@ const userFirebaseConfig = {
   measurementId: "G-63W95VNLK6"
 };
 
+// --- ICONS (Matching original names) ---
+const IconPlus = () => <Plus size={20} />;
+const IconDivide = () => <Divide size={20} />;
+
 function App() {
+  // --- iOS Viewport Fix ---
+  useEffect(() => {
+    const setAppHeight = () => {
+      const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', `${h}px`);
+    };
+    setAppHeight();
+    window.addEventListener('resize', setAppHeight);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', setAppHeight);
+    return () => {
+      window.removeEventListener('resize', setAppHeight);
+      if (window.visualViewport) window.visualViewport.removeEventListener('resize', setAppHeight);
+    }
+  }, []);
+
   const [appMode, setAppMode] = useState('REPERTOIRE');
   const [view, setView] = useState('PRACTICE');
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('pianoTheme') === 'dark');
 
-  const [repertoire, setRepertoire] = useState(() => JSON.parse(localStorage.getItem("pianoRepertoire_v9") || "[]"));
-  const [tenKData, setTenKData] = useState(() => JSON.parse(localStorage.getItem("piano10k_v1") || '{"hours":"","minutes":""}'));
-  const [repState, setRepState] = useState({ count: 5, target: 5 });
-  const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem("pianoHistory_v1") || "[]"));
-
-  const [currentPiece, setCurrentPiece] = useState(null);
-  const [isRedListMode, setIsRedListMode] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    const stored = localStorage.getItem('pianoTheme');
+    return stored ? stored === 'dark' : true;
+  });
 
   const [syncId, setSyncId] = useState(() => localStorage.getItem('pianoSyncId') || "");
   const [syncStatus, setSyncStatus] = useState("disconnected");
@@ -39,15 +55,59 @@ function App() {
   const dbRef = useRef(null);
   const isCloudReady = useRef(false);
 
-  // --- iOS FIX ---
-  useEffect(() => {
-    const setAppHeight = () => document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-    window.addEventListener('resize', setAppHeight);
-    setAppHeight();
-    return () => window.removeEventListener('resize', setAppHeight);
-  }, []);
+  // --- DATA STATE ---
+  const INITIAL_REPERTOIRE = [];
+  const [pieces, setPieces] = useState(() => {
+    const saved = localStorage.getItem('pianoRepertoire_v9');
+    let data = saved ? JSON.parse(saved) : INITIAL_REPERTOIRE;
+    // Data normalization from original code
+    data = data.map(p => {
+        if (p.type === 'divider') return p;
+        let status = p.status;
+        if (!status) status = p.isRed ? 'red' : 'normal';
+        if (status === 'red' && !p.isRed) p.isRed = true;
+        if (p.isRed && status === 'normal') status = 'red';
+        return { ...p, status, isRed: status === 'red' };
+    });
+    return data;
+  });
 
-  // --- FIREBASE & SYNC ---
+  const [tenKData, setTenKData] = useState(() => {
+    const saved = localStorage.getItem('piano10k_v1');
+    return saved ? JSON.parse(saved) : { hours: "", minutes: "" };
+  });
+
+  const [customMilestones, setCustomMilestones] = useState(() => JSON.parse(localStorage.getItem('pianoCustomMilestones_v1') || "[]"));
+  const [intervalMilestones, setIntervalMilestones] = useState(() => JSON.parse(localStorage.getItem('pianoIntervalMilestones_v1') || "[]"));
+  const [legacyMeta, setLegacyMeta] = useState(() => JSON.parse(localStorage.getItem('pianoLegacyMeta_v1') || "{}"));
+  const [repState, setRepState] = useState({ count: 5, target: 5 });
+  const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('pianoHistory_v1') || "[]"));
+  const [dailyStats, setDailyStats] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('pianoDailyStats_v1') || '{}');
+    const today = new Date().toDateString();
+    if (saved.date !== today) return { date: today, count: 0 };
+    return saved;
+  });
+
+  const [currentPiece, setCurrentPiece] = useState(null);
+  
+  // Modal states for App-level additions
+  const [isAdding, setIsAdding] = useState(false);
+  const [newPieceTitle, setNewPieceTitle] = useState("");
+  const [newPieceDate, setNewPieceDate] = useState("");
+  const [isAddingDivider, setIsAddingDivider] = useState(false);
+  const [dividerText, setDividerText] = useState("");
+  const [dividerAfterId, setDividerAfterId] = useState("");
+
+  const [isRedListMode, setIsRedListMode] = useState(false);
+  const [sessionFilter, setSessionFilter] = useState(false);
+
+  // Sorting
+  const sortedPieces = useMemo(() => {
+      return [...pieces].filter(p => p.type !== 'divider').sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+  }, [pieces]);
+
+  // --- FIREBASE INIT ---
   useEffect(() => {
     try {
       if (!firebase.apps.length) {
@@ -61,6 +121,7 @@ function App() {
     } catch (e) { console.error("Firebase Init Failed", e); }
   }, []);
 
+  // --- SYNC LOGIC ---
   useEffect(() => {
     if (isFirebaseEnabled && syncId && dbRef.current) {
       setSyncStatus("syncing");
@@ -68,12 +129,16 @@ function App() {
       dbRef.current.collection('piano_users').doc(syncId).get().then(doc => {
         if (doc.exists) {
           const data = doc.data();
-          if (data.pianoRepertoire_v9) setRepertoire(data.pianoRepertoire_v9);
+          if (data.pianoRepertoire_v9) setPieces(data.pianoRepertoire_v9);
           if (data.piano10k_v1) setTenKData(data.piano10k_v1);
           if (data.pianoHistory_v1) setHistory(data.pianoHistory_v1);
+          if (data.pianoDailyStats_v1) setDailyStats(data.pianoDailyStats_v1);
+          if (data.pianoCustomMilestones_v1) setCustomMilestones(data.pianoCustomMilestones_v1);
+          if (data.pianoLegacyMeta_v1) setLegacyMeta(data.pianoLegacyMeta_v1);
+          if (data.pianoIntervalMilestones_v1) setIntervalMilestones(data.pianoIntervalMilestones_v1);
           setSyncStatus("synced");
         } else { setSyncStatus("synced"); }
-      }).catch(() => setSyncStatus("error")).finally(() => { isCloudReady.current = true; });
+      }).catch((err) => { console.error(err); setSyncStatus("error"); }).finally(() => { isCloudReady.current = true; });
     } else if (!syncId) { setSyncStatus("disconnected"); }
   }, [syncId, isFirebaseEnabled]);
 
@@ -88,99 +153,187 @@ function App() {
     }
   };
 
-  useEffect(() => { saveData('pianoRepertoire_v9', repertoire); }, [repertoire]);
+  // --- PERSISTENCE ---
+  useEffect(() => { saveData('pianoRepertoire_v9', pieces); }, [pieces]);
   useEffect(() => { saveData('piano10k_v1', tenKData); }, [tenKData]);
   useEffect(() => { saveData('pianoHistory_v1', history); }, [history]);
+  useEffect(() => { saveData('pianoDailyStats_v1', dailyStats); }, [dailyStats]);
+  useEffect(() => { saveData('pianoCustomMilestones_v1', customMilestones); }, [customMilestones]);
+  useEffect(() => { saveData('pianoLegacyMeta_v1', legacyMeta); }, [legacyMeta]);
+  useEffect(() => { saveData('pianoIntervalMilestones_v1', intervalMilestones); }, [intervalMilestones]);
   useEffect(() => { if (syncId) localStorage.setItem('pianoSyncId', syncId); }, [syncId]);
 
+  // --- THEME ---
   useEffect(() => {
     if (isDark) { document.documentElement.classList.add('dark'); localStorage.setItem('pianoTheme', 'dark'); } 
     else { document.documentElement.classList.remove('dark'); localStorage.setItem('pianoTheme', 'light'); }
   }, [isDark]);
 
-  const pickPiece = (forceRed = false) => {
-    const validPool = repertoire.filter(p => p.type !== 'divider');
-    const pool = forceRed || isRedListMode ? validPool.filter(p => p.status === 'red') : validPool.filter(p => p.status !== 'green');
-    if (pool.length === 0) return alert("No pieces available!");
-    const winner = pool[Math.floor(Math.random() * pool.length)];
-    setCurrentPiece(winner);
+  // --- ACTIONS ---
+  const recordPlay = (piece) => {
+    if (piece.type === 'divider') return;
     const now = Date.now();
-    setRepertoire(prev => prev.map(p => p.id === winner.id ? { ...p, playCount: (p.playCount || 0) + 1, lastPlayed: now } : p));
-    setHistory(prev => [{ historyId: now, pieceId: winner.id, title: winner.title, timestamp: now }, ...prev]);
+    setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, lastPlayed: now, playCount: (p.playCount || 0) + 1 } : p));
+    setHistory(prev => [{ historyId: Date.now(), pieceId: piece.id, title: piece.title, timestamp: now }, ...prev]);
+    const todayStr = new Date().toDateString();
+    setDailyStats(prev => {
+        if (prev.date !== todayStr) return { date: todayStr, count: 1 };
+        return { ...prev, count: prev.count + 1 };
+    });
   };
 
-  const replayPieceFromHistory = (pieceId) => {
-      const piece = repertoire.find(p => p.id === pieceId);
-      if (piece) {
-          const now = Date.now();
-          setRepertoire(prev => prev.map(p => p.id === piece.id ? { ...p, playCount: (p.playCount || 0) + 1, lastPlayed: now } : p));
-          setHistory(prev => [{ historyId: now, pieceId: piece.id, title: piece.title, timestamp: now }, ...prev]);
-      }
+  const pickPiece = (filterRed) => {
+    let isRed = sessionFilter;
+    if (typeof filterRed === 'boolean') { isRed = filterRed; setSessionFilter(filterRed); }
+    const validPool = pieces.filter(p => p.type !== 'divider');
+    const pool = isRed ? validPool.filter(p => p.status === 'red') : validPool.filter(p => p.status !== 'green');
+
+    if (pool.length === 0) return alert(isRed ? "Red List is empty!" : "No eligible pieces available!");
+
+    const now = Date.now();
+    const candidates = pool.map(p => {
+        const timeSinceLastPlayed = p.lastPlayed === 0 ? 100000000000 : now - p.lastPlayed;
+        const randomFactor = 0.5 + Math.random();
+        return { ...p, score: timeSinceLastPlayed * randomFactor };
+    });
+    candidates.sort((a, b) => b.score - a.score);
+    const winner = candidates[0];
+    setCurrentPiece(winner);
+    recordPlay(winner);
   };
 
-  const deleteHistoryEntry = (hId, pId) => {
-      setHistory(history.filter(h => h.historyId !== hId));
-      setRepertoire(prev => prev.map(p => p.id === pId ? { ...p, playCount: Math.max(0, (p.playCount || 0) - 1) } : p));
+  const replayPieceFromHistory = (pieceId) => { const piece = pieces.find(p => p.id === pieceId); if (piece) recordPlay(piece); };
+  
+  const deleteHistoryEntry = (historyId, pieceId) => {
+    const entry = history.find(h => h.historyId === historyId);
+    if (entry) {
+       const isToday = new Date(entry.timestamp).toDateString() === new Date().toDateString();
+       if (isToday) setDailyStats(prev => ({ ...prev, count: Math.max(0, prev.count - 1) }));
+    }
+    setHistory(history.filter(h => h.historyId !== historyId));
+    setPieces(prev => prev.map(p => p.id === pieceId ? { ...p, playCount: Math.max(0, (p.playCount || 0) - 1) } : p));
   };
 
   const handleLogout = () => {
-    if (confirm("Disconnect cloud sync?")) { setSyncId(""); localStorage.removeItem('pianoSyncId'); setSyncStatus("disconnected"); }
+    if (confirm("Are you sure? This will disconnect cloud sync and clear all local data.")) {
+        setSyncId(""); localStorage.removeItem('pianoSyncId'); setSyncStatus("disconnected");
+        setPieces(INITIAL_REPERTOIRE); setHistory([]); setTenKData({ hours: "", minutes: "" });
+    }
+  };
+
+  // --- ADD LOGIC ---
+  const handleStartAdd = () => {
+    const existingCount = pieces.filter(p => p.type !== 'divider').length;
+    setNewPieceTitle(`${existingCount + 1}. `);
+    setNewPieceDate(new Date().toISOString().split('T')[0]);
+    setIsAdding(true);
+  };
+
+  const addNewPiece = () => {
+    if (!newPieceTitle.trim()) return;
+    const newPiece = { id: Date.now(), type: 'piece', title: newPieceTitle, startDate: newPieceDate, lastPlayed: 0, playCount: 0, status: 'normal', isRed: false };
+    setPieces([newPiece, ...pieces]);
+    setNewPieceTitle(""); setIsAdding(false);
+  };
+
+  const addDivider = (text, afterPieceId) => {
+    if (!text.trim()) return;
+    let newId = Date.now();
+    if (afterPieceId) {
+       const sorted = [...pieces].sort((a,b) => a.id - b.id);
+       const index = sorted.findIndex(p => p.id === Number(afterPieceId));
+       if (index !== -1 && index < sorted.length - 1) newId = (sorted[index].id + sorted[index+1].id) / 2;
+    }
+    setPieces(prev => [{ id: newId, type: 'divider', text: text }, ...prev]);
+    setIsAddingDivider(false); setDividerText("");
+  };
+
+  const cycleMode = () => {
+    if (appMode === 'REPERTOIRE') setAppMode('10K');
+    else if (appMode === '10K') setAppMode('REPS');
+    else setAppMode('REPERTOIRE');
   };
 
   return (
     <div className={`flex flex-col h-screen ${isDark ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'} font-sans overflow-hidden`} style={{ height: 'var(--app-height)' }}>
       {/* HEADER */}
       <div className={`p-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} border-b shadow-sm flex justify-between items-center shrink-0 z-10`}>
-         <button onClick={() => {
-             if (appMode === 'REPERTOIRE') setAppMode('10K'); else if (appMode === '10K') setAppMode('REPS'); else setAppMode('REPERTOIRE');
-         }} className="flex items-center gap-2 font-bold text-lg">
-             {appMode === 'REPERTOIRE' && <><Music /> Repertoire</>}
-             {appMode === '10K' && <><Timer /> 10,000 Hours</>}
-             {appMode === 'REPS' && <><RotateCw /> Repetitions</>}
+         <button onClick={cycleMode} className="flex flex-col items-start justify-center h-10">
+            <h1 className="text-lg font-bold flex items-center gap-2 active:opacity-50 transition-opacity">
+                {appMode === 'REPERTOIRE' && <><Music /> Repertoire <ChevronDown /></>}
+                {appMode === '10K' && <><Timer /> 10,000 Hours <ChevronDown /></>}
+                {appMode === 'REPS' && <><RotateCw /> Repetitions <ChevronDown /></>}
+            </h1>
          </button>
+         {appMode === 'REPERTOIRE' && (
+             <div className={`flex gap-2 p-1 rounded-full items-center ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                <button onClick={() => setView('PRACTICE')} className={`p-2 rounded-full transition-colors ${view === 'PRACTICE' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Play size={16} /></button>
+                <button onClick={() => setView('LIST')} className={`p-2 rounded-full transition-colors ${view === 'LIST' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><List size={16} /></button>
+                <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Crown size={16} /></button>
+                <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Clock size={16} /></button>
+                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-400')}`}>v52</button>
+             </div>
+         )}
       </div>
+
+      {appMode === 'REPERTOIRE' && (
+        <div className={`py-1.5 px-4 flex justify-center items-center gap-4 text-xs font-mono shrink-0 z-0 ${isDark ? 'bg-slate-900/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+            <span>Today: <strong className={isDark ? 'text-slate-200' : 'text-slate-700'}>{dailyStats.count}</strong></span>
+            <span className={isDark ? 'text-slate-600' : 'text-slate-300'}>|</span>
+            <span>Total: <strong className={isDark ? 'text-slate-200' : 'text-slate-700'}>{pieces.filter(p=>p.type!=='divider').reduce((sum, p) => sum + (p.playCount || 0), 0)}</strong></span>
+        </div>
+      )}
 
       {/* CONTENT */}
       <div className="flex-1 overflow-hidden flex flex-col relative">
-        {appMode === '10K' && <Tracker tenKData={tenKData} setTenKData={setTenKData} />}
+        {appMode === '10K' && <Tracker tenKData={tenKData} setTenKData={setTenKData} customMilestones={customMilestones} addCustomMilestone={(m) => setCustomMilestones([...customMilestones, m])} intervalMilestones={intervalMilestones} setIntervalMilestones={setIntervalMilestones} legacyMeta={legacyMeta} setLegacyMeta={setLegacyMeta} onIntervalAdded={(h) => addDivider(String(h), null)} />}
         {appMode === 'REPS' && <Repetitions repState={repState} setRepState={setRepState} />}
         {appMode === 'REPERTOIRE' && (
             <>
-                {view === 'PRACTICE' && (
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-8 animate-in fade-in duration-300">
-                        {currentPiece ? (
-                            <div className="w-full">
-                                <div className="text-sm uppercase tracking-widest text-slate-400 mb-2">Please Play</div>
-                                <div className="text-3xl font-serif font-medium leading-tight mb-8">{currentPiece.title}</div>
-                                <div className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-500">Total Plays: {currentPiece.playCount || 0}</div>
-                            </div>
-                        ) : <div className="text-slate-400 italic">Tap below to pick a piece</div>}
-
-                        <div className="flex flex-col gap-4 w-full max-w-sm">
-                            <button onClick={() => pickPiece(false)} className="bg-indigo-600 active:bg-indigo-700 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl transition-all transform active:scale-95 w-full">
-                                {currentPiece ? "Next Piece" : "Start Session"}
-                            </button>
-                            {!currentPiece && ( <button onClick={() => pickPiece(true)} className="border-2 border-red-500 text-red-500 font-bold py-3 px-6 rounded-xl w-full">Red List Only</button> )}
-                            {currentPiece && ( <button onClick={() => setCurrentPiece(null)} className="flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-4 rounded-xl active:scale-95"><StopCircle /> Stop Session</button> )}
-                        </div>
+                {view === 'PRACTICE' && <Practice currentPiece={currentPiece} pickPiece={pickPiece} stopSession={() => { setCurrentPiece(null); setSessionFilter(false); }} redListCount={pieces.filter(p => p.status === 'red' && p.type !== 'divider').length} />}
+                {view === 'LIST' && (
+                    <div className="flex flex-col h-full">
+                       <Repertoire repertoire={pieces} setRepertoire={setPieces} isRedListMode={isRedListMode} toggleRedList={() => setIsRedListMode(!isRedListMode)} />
+                       <div className={`p-6 border-t shrink-0 z-10 w-full flex flex-col items-center gap-3 safe-area-pb ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                           <button onClick={handleStartAdd} className={`w-full flex items-center justify-center gap-2 p-4 font-bold transition-colors border rounded-xl ${isDark ? 'bg-slate-700/50 text-white hover:bg-slate-700 border-slate-600' : 'bg-slate-50 text-slate-900 hover:bg-slate-100 border-slate-200'}`}><IconPlus /> Add New Piece</button>
+                           <button onClick={() => setIsAddingDivider(true)} className={`text-xs font-bold transition-colors flex items-center gap-1 ${isDark ? 'text-slate-400 hover:text-indigo-400' : 'text-slate-400 hover:text-indigo-500'}`}><IconDivide /> Add Divider</button>
+                       </div>
                     </div>
                 )}
-                {view === 'LIST' && <Repertoire repertoire={repertoire} setRepertoire={setRepertoire} isRedListMode={isRedListMode} toggleRedList={() => setIsRedListMode(!isRedListMode)} />}
-                {view === 'LEADERBOARD' && <Leaderboard repertoire={repertoire} />}
+                {view === 'LEADERBOARD' && <Leaderboard sortedPieces={sortedPieces} />}
                 {view === 'HISTORY' && <History history={history} replayPieceFromHistory={replayPieceFromHistory} deleteHistoryEntry={deleteHistoryEntry} />}
                 {view === 'SETTINGS' && <Settings syncStatus={syncStatus} isFirebaseEnabled={isFirebaseEnabled} syncId={syncId} setSyncId={setSyncId} handleLogout={handleLogout} isDark={isDark} setIsDark={setIsDark} />}
             </>
         )}
       </div>
 
-      {/* BOTTOM NAV */}
-      {appMode === 'REPERTOIRE' && (
-          <div className={`border-t p-2 flex justify-around items-center shrink-0 safe-area-pb ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <button onClick={() => setView('PRACTICE')} className={`p-2 rounded-full flex flex-col items-center ${view === 'PRACTICE' ? 'text-indigo-500' : 'text-slate-400'}`}><Play size={24} /><span className="text-[10px] font-bold">Practice</span></button>
-              <button onClick={() => setView('LIST')} className={`p-2 rounded-full flex flex-col items-center ${view === 'LIST' ? 'text-indigo-500' : 'text-slate-400'}`}><List size={24} /><span className="text-[10px] font-bold">List</span></button>
-              <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full flex flex-col items-center ${view === 'LEADERBOARD' ? 'text-indigo-500' : 'text-slate-400'}`}><Crown size={24} /><span className="text-[10px] font-bold">Top</span></button>
-              <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full flex flex-col items-center ${view === 'HISTORY' ? 'text-indigo-500' : 'text-slate-400'}`}><Clock size={24} /><span className="text-[10px] font-bold">History</span></button>
-              <button onClick={() => setView('SETTINGS')} className={`p-2 rounded-full flex flex-col items-center ${view === 'SETTINGS' ? 'text-indigo-500' : 'text-slate-400'}`}><SettingsIcon size={24} /><span className="text-[10px] font-bold">Settings</span></button>
+      {/* ADD MODAL (Legacy Style) */}
+      {isAdding && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
+              <div className="min-h-full flex items-center justify-center p-4">
+                  <div onClick={(e) => e.stopPropagation()} className={`p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+                      <h3 className={`text-sm font-bold mb-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Add New Piece</h3>
+                      <div className="space-y-4 pb-32">
+                          <div><label className={`text-xs font-bold mb-1 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Title</label><input autoFocus value={newPieceTitle} onChange={(e) => setNewPieceTitle(e.target.value)} className={`w-full p-3 border rounded-xl text-lg outline-none focus:border-indigo-500 ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300'}`} /></div>
+                          <div><label className={`text-xs font-bold mb-1 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Date Started</label><input type="date" value={newPieceDate} onChange={(e) => setNewPieceDate(e.target.value)} className={`w-full p-3 border rounded-xl text-sm outline-none ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300'}`} /></div>
+                          <div className="flex gap-2 pt-2"><button onClick={addNewPiece} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold">Save</button><button onClick={() => setIsAdding(false)} className={`flex-1 py-3 rounded-xl font-semibold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>Cancel</button></div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+      {isAddingDivider && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
+              <div className="min-h-full flex items-center justify-center p-4">
+                  <div onClick={(e) => e.stopPropagation()} className={`p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+                      <h3 className={`text-sm font-bold mb-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Add Divider</h3>
+                      <div className="space-y-4 pb-12">
+                          <div><label className={`text-xs font-bold mb-1 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Label</label><input autoFocus value={dividerText} onChange={(e) => setDividerText(e.target.value)} className={`w-full p-3 border rounded-xl text-lg outline-none focus:border-indigo-500 ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300'}`} /></div>
+                          <div><label className={`text-xs font-bold mb-1 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Insert After</label><select value={dividerAfterId} onChange={e => setDividerAfterId(e.target.value)} className={`w-full p-3 border rounded-xl text-sm outline-none ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300'}`}><option value="">At the top</option>{pieces.filter(p => p.type !== 'divider').map((p, idx) => <option key={p.id} value={p.id}>{idx + 1}. {p.title}</option>)}</select></div>
+                          <div className="flex gap-2 pt-2"><button onClick={() => addDivider(dividerText, dividerAfterId)} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold">Add</button><button onClick={() => setIsAddingDivider(false)} className={`flex-1 py-3 rounded-xl font-semibold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>Cancel</button></div>
+                      </div>
+                  </div>
+              </div>
           </div>
       )}
     </div>
