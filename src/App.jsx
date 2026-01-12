@@ -3,12 +3,13 @@ import Tracker from './components/Tracker';
 import Repertoire from './components/Repertoire';
 import Repetitions from './components/Repetitions';
 import Settings from './components/Settings';
-import { Play, List, Clock, Settings as SettingsIcon, Music, Timer, RotateCw, StopCircle } from 'lucide-react';
+import History from './components/History';
+import Leaderboard from './components/Leaderboard';
+import { Play, List, Clock, Settings as SettingsIcon, Music, Timer, RotateCw, StopCircle, Crown } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
-import confetti from 'canvas-confetti';
 
-// --- FIREBASE CONFIG (From v51) ---
+// --- FIREBASE CONFIG ---
 const userFirebaseConfig = {
   apiKey: "AIzaSyBtbs3d0ifYfTE2H0ly7-rix0wVhbdf25I",
   authDomain: "piano10000-35804.firebaseapp.com",
@@ -20,12 +21,10 @@ const userFirebaseConfig = {
 };
 
 function App() {
-  // --- STATE ---
   const [appMode, setAppMode] = useState('REPERTOIRE');
   const [view, setView] = useState('PRACTICE');
   const [isDark, setIsDark] = useState(() => localStorage.getItem('pianoTheme') === 'dark');
 
-  // --- DATA STATE ---
   const [repertoire, setRepertoire] = useState(() => JSON.parse(localStorage.getItem("pianoRepertoire_v9") || "[]"));
   const [tenKData, setTenKData] = useState(() => JSON.parse(localStorage.getItem("piano10k_v1") || '{"hours":"","minutes":""}'));
   const [repState, setRepState] = useState({ count: 5, target: 5 });
@@ -34,14 +33,21 @@ function App() {
   const [currentPiece, setCurrentPiece] = useState(null);
   const [isRedListMode, setIsRedListMode] = useState(false);
 
-  // --- SYNC STATE ---
   const [syncId, setSyncId] = useState(() => localStorage.getItem('pianoSyncId') || "");
   const [syncStatus, setSyncStatus] = useState("disconnected");
   const [isFirebaseEnabled, setIsFirebaseEnabled] = useState(false);
   const dbRef = useRef(null);
   const isCloudReady = useRef(false);
 
-  // --- FIREBASE INIT ---
+  // --- iOS FIX ---
+  useEffect(() => {
+    const setAppHeight = () => document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    window.addEventListener('resize', setAppHeight);
+    setAppHeight();
+    return () => window.removeEventListener('resize', setAppHeight);
+  }, []);
+
+  // --- FIREBASE & SYNC ---
   useEffect(() => {
     try {
       if (!firebase.apps.length) {
@@ -52,12 +58,9 @@ function App() {
         setIsFirebaseEnabled(true);
         dbRef.current = firebase.firestore();
       }
-    } catch (e) {
-      console.error("Firebase Init Failed", e);
-    }
+    } catch (e) { console.error("Firebase Init Failed", e); }
   }, []);
 
-  // --- SYNC LOGIC (The "Magic" from v51) ---
   useEffect(() => {
     if (isFirebaseEnabled && syncId && dbRef.current) {
       setSyncStatus("syncing");
@@ -69,83 +72,67 @@ function App() {
           if (data.piano10k_v1) setTenKData(data.piano10k_v1);
           if (data.pianoHistory_v1) setHistory(data.pianoHistory_v1);
           setSyncStatus("synced");
-        } else {
-          setSyncStatus("synced"); // New user
-        }
-      }).catch(err => {
-        console.error("Cloud Load Error", err);
-        setSyncStatus("error");
-      }).finally(() => {
-        isCloudReady.current = true;
-      });
-    } else if (!syncId) {
-      setSyncStatus("disconnected");
-    }
+        } else { setSyncStatus("synced"); }
+      }).catch(() => setSyncStatus("error")).finally(() => { isCloudReady.current = true; });
+    } else if (!syncId) { setSyncStatus("disconnected"); }
   }, [syncId, isFirebaseEnabled]);
 
-  // Generic Save Function
   const saveData = async (key, data) => {
     localStorage.setItem(key, JSON.stringify(data));
     if (isFirebaseEnabled && syncId && dbRef.current && isCloudReady.current) {
       setSyncStatus("syncing");
       try {
-        await dbRef.current.collection('piano_users').doc(syncId).set({
-          [key]: data,
-          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        await dbRef.current.collection('piano_users').doc(syncId).set({ [key]: data, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
         setSyncStatus("synced");
-      } catch (e) {
-        setSyncStatus("error");
-      }
+      } catch (e) { setSyncStatus("error"); }
     }
   };
 
-  // --- PERSISTENCE HOOKS ---
   useEffect(() => { saveData('pianoRepertoire_v9', repertoire); }, [repertoire]);
   useEffect(() => { saveData('piano10k_v1', tenKData); }, [tenKData]);
   useEffect(() => { saveData('pianoHistory_v1', history); }, [history]);
   useEffect(() => { if (syncId) localStorage.setItem('pianoSyncId', syncId); }, [syncId]);
 
-  // --- THEME ---
   useEffect(() => {
     if (isDark) { document.documentElement.classList.add('dark'); localStorage.setItem('pianoTheme', 'dark'); } 
     else { document.documentElement.classList.remove('dark'); localStorage.setItem('pianoTheme', 'light'); }
   }, [isDark]);
 
-  // --- ACTIONS ---
   const pickPiece = (forceRed = false) => {
     const validPool = repertoire.filter(p => p.type !== 'divider');
-    const pool = forceRed || isRedListMode
-        ? validPool.filter(p => p.status === 'red')
-        : validPool.filter(p => p.status !== 'green');
-
+    const pool = forceRed || isRedListMode ? validPool.filter(p => p.status === 'red') : validPool.filter(p => p.status !== 'green');
     if (pool.length === 0) return alert("No pieces available!");
     const winner = pool[Math.floor(Math.random() * pool.length)];
     setCurrentPiece(winner);
-    
-    // Auto-record play
     const now = Date.now();
     setRepertoire(prev => prev.map(p => p.id === winner.id ? { ...p, playCount: (p.playCount || 0) + 1, lastPlayed: now } : p));
     setHistory(prev => [{ historyId: now, pieceId: winner.id, title: winner.title, timestamp: now }, ...prev]);
   };
 
+  const replayPieceFromHistory = (pieceId) => {
+      const piece = repertoire.find(p => p.id === pieceId);
+      if (piece) {
+          const now = Date.now();
+          setRepertoire(prev => prev.map(p => p.id === piece.id ? { ...p, playCount: (p.playCount || 0) + 1, lastPlayed: now } : p));
+          setHistory(prev => [{ historyId: now, pieceId: piece.id, title: piece.title, timestamp: now }, ...prev]);
+      }
+  };
+
+  const deleteHistoryEntry = (hId, pId) => {
+      setHistory(history.filter(h => h.historyId !== hId));
+      setRepertoire(prev => prev.map(p => p.id === pId ? { ...p, playCount: Math.max(0, (p.playCount || 0) - 1) } : p));
+  };
+
   const handleLogout = () => {
-    if (confirm("Disconnect cloud sync?")) {
-        setSyncId("");
-        localStorage.removeItem('pianoSyncId');
-        setSyncStatus("disconnected");
-    }
+    if (confirm("Disconnect cloud sync?")) { setSyncId(""); localStorage.removeItem('pianoSyncId'); setSyncStatus("disconnected"); }
   };
 
   return (
-    <div className={`flex flex-col h-screen ${isDark ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'} font-sans overflow-hidden`}>
-      
+    <div className={`flex flex-col h-screen ${isDark ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'} font-sans overflow-hidden`} style={{ height: 'var(--app-height)' }}>
       {/* HEADER */}
       <div className={`p-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} border-b shadow-sm flex justify-between items-center shrink-0 z-10`}>
          <button onClick={() => {
-             if (appMode === 'REPERTOIRE') setAppMode('10K');
-             else if (appMode === '10K') setAppMode('REPS');
-             else setAppMode('REPERTOIRE');
+             if (appMode === 'REPERTOIRE') setAppMode('10K'); else if (appMode === '10K') setAppMode('REPS'); else setAppMode('REPERTOIRE');
          }} className="flex items-center gap-2 font-bold text-lg">
              {appMode === 'REPERTOIRE' && <><Music /> Repertoire</>}
              {appMode === '10K' && <><Timer /> 10,000 Hours</>}
@@ -173,18 +160,14 @@ function App() {
                             <button onClick={() => pickPiece(false)} className="bg-indigo-600 active:bg-indigo-700 text-white text-xl font-bold py-6 px-12 rounded-2xl shadow-xl transition-all transform active:scale-95 w-full">
                                 {currentPiece ? "Next Piece" : "Start Session"}
                             </button>
-                            {!currentPiece && (
-                                <button onClick={() => pickPiece(true)} className="border-2 border-red-500 text-red-500 font-bold py-3 px-6 rounded-xl w-full">Red List Only</button>
-                            )}
-                            {currentPiece && (
-                                <button onClick={() => setCurrentPiece(null)} className="flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-4 rounded-xl active:scale-95">
-                                    <StopCircle /> Stop Session
-                                </button>
-                            )}
+                            {!currentPiece && ( <button onClick={() => pickPiece(true)} className="border-2 border-red-500 text-red-500 font-bold py-3 px-6 rounded-xl w-full">Red List Only</button> )}
+                            {currentPiece && ( <button onClick={() => setCurrentPiece(null)} className="flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-4 rounded-xl active:scale-95"><StopCircle /> Stop Session</button> )}
                         </div>
                     </div>
                 )}
                 {view === 'LIST' && <Repertoire repertoire={repertoire} setRepertoire={setRepertoire} isRedListMode={isRedListMode} toggleRedList={() => setIsRedListMode(!isRedListMode)} />}
+                {view === 'LEADERBOARD' && <Leaderboard repertoire={repertoire} />}
+                {view === 'HISTORY' && <History history={history} replayPieceFromHistory={replayPieceFromHistory} deleteHistoryEntry={deleteHistoryEntry} />}
                 {view === 'SETTINGS' && <Settings syncStatus={syncStatus} isFirebaseEnabled={isFirebaseEnabled} syncId={syncId} setSyncId={setSyncId} handleLogout={handleLogout} isDark={isDark} setIsDark={setIsDark} />}
             </>
         )}
@@ -195,6 +178,8 @@ function App() {
           <div className={`border-t p-2 flex justify-around items-center shrink-0 safe-area-pb ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
               <button onClick={() => setView('PRACTICE')} className={`p-2 rounded-full flex flex-col items-center ${view === 'PRACTICE' ? 'text-indigo-500' : 'text-slate-400'}`}><Play size={24} /><span className="text-[10px] font-bold">Practice</span></button>
               <button onClick={() => setView('LIST')} className={`p-2 rounded-full flex flex-col items-center ${view === 'LIST' ? 'text-indigo-500' : 'text-slate-400'}`}><List size={24} /><span className="text-[10px] font-bold">List</span></button>
+              <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full flex flex-col items-center ${view === 'LEADERBOARD' ? 'text-indigo-500' : 'text-slate-400'}`}><Crown size={24} /><span className="text-[10px] font-bold">Top</span></button>
+              <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full flex flex-col items-center ${view === 'HISTORY' ? 'text-indigo-500' : 'text-slate-400'}`}><Clock size={24} /><span className="text-[10px] font-bold">History</span></button>
               <button onClick={() => setView('SETTINGS')} className={`p-2 rounded-full flex flex-col items-center ${view === 'SETTINGS' ? 'text-indigo-500' : 'text-slate-400'}`}><SettingsIcon size={24} /><span className="text-[10px] font-bold">Settings</span></button>
           </div>
       )}
