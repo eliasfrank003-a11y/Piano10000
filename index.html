@@ -14,9 +14,9 @@
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Piano v50" />
+  <meta name="apple-mobile-web-app-title" content="Piano v51" />
 
-  <title>Piano v50</title>
+  <title>Piano v51</title>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -71,7 +71,7 @@
 
   <script type="text/babel">
     // =================================================================
-    // APP VERSION: v50
+    // APP VERSION: v51
     //
     // NOTE TO FUTURE AI:
     // Please increment the APP_VERSION constant by 1 whenever you update 
@@ -470,7 +470,6 @@
           return;
         }
         if (editingMilestone.type === 'legacy') {
-           // Legacy deletion handled if needed
            if (confirm("Remove entry metadata?")) {
               setLegacyMeta(prev => { const n={...prev}; delete n[editingMilestone.id]; return n; });
               setIsModalOpen(false);
@@ -488,7 +487,7 @@
             { id: Date.now(), date: formState.date, hours: h, avg: formState.avg, description: formState.description || "" }
           ]));
           // Trigger logic to add divider to repertoire
-          if (onIntervalAdded) onIntervalAdded(h);
+          if (onIntervalAdded) onIntervalAdded(String(h));
           setIsModalOpen(false);
           return;
         }
@@ -697,8 +696,8 @@
               </div>
 
               <div className="relative mt-6 pb-12">
-                {/* CSS FIX FOR TIMELINE CONNECTION */}
-                <div className="absolute left-8 top-12 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0" style={{ marginBottom: '1.5rem' }}></div>
+                {/* TIMELINE CSS FIX: START/END POINTS */}
+                <div className="absolute left-8 top-[3.5rem] bottom-8 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0"></div>
 
                 <div className="relative z-10 mb-8 pl-16">
                   <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-50 dark:ring-slate-900"></div>
@@ -901,17 +900,6 @@
       };
       const clearDate = () => setEditForm({ ...editForm, date: '' });
 
-      // Identify chronological indices (ignoring dividers)
-      // Since sortedPieces is currently Newest(Top) -> Oldest(Bottom), index 0 is newest.
-      // The user likely thinks in "Piece 1, 2, 3" as creation order.
-      // Let's map IDs to a chronological number (1=oldest).
-      const pieceIndices = useMemo(() => {
-         const allNormalPieces = sortedPieces.filter(p => p.type !== 'divider').sort((a,b) => a.id - b.id); // Oldest first
-         const map = {};
-         allNormalPieces.forEach((p, idx) => { map[p.id] = idx + 1; });
-         return map;
-      }, [sortedPieces]);
-
       return (
         <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex items-center justify-between mb-4 px-2">
@@ -944,23 +932,41 @@
 
           <div className="space-y-3 pb-8">
             {[...displayedPieces].sort((a, b) => b.id - a.id).map((piece) => {
+              const isSwiped = swipedId === piece.id;
+              
               if (piece.type === 'divider') {
-                  // Divider Rendering
+                  // Divider Rendering with Swipe Delete
                   return (
-                      <div key={piece.id} className="flex items-center justify-center gap-4 py-4 opacity-70">
-                          <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
-                          <span className="font-bold text-slate-400 dark:text-slate-500 text-xs tracking-widest">{piece.hours} HOURS</span>
-                          <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
-                          {/* Hidden delete for maintenance if needed? User can delete via swipe maybe not ideal. Let's allow swipe delete on dividers too */}
-                          <button onClick={() => deletePiece(piece.id)} className="text-slate-300 hover:text-red-500"><IconTrash /></button>
+                      <div
+                        key={piece.id}
+                        className="relative overflow-hidden isolate"
+                      >
+                         <div className={`absolute inset-0 z-0 flex justify-end transition-all duration-200 ${isSwiped ? 'opacity-100' : 'opacity-0 invisible'}`}>
+                           <button onClick={() => deletePiece(piece.id)} className="bg-red-500 text-white font-bold w-24 flex items-center justify-center rounded-r-xl my-2">Delete</button>
+                         </div>
+
+                         <div
+                            className="relative z-10 swipe-item bg-slate-50 dark:bg-slate-900"
+                            onTouchStart={handleTouchStart}
+                            onTouchEnd={(e) => handleTouchEnd(e, piece.id)}
+                            style={{
+                              backfaceVisibility: 'hidden',
+                              willChange: 'transform',
+                              transform: isSwiped ? 'translate3d(-6rem,0,0)' : 'translate3d(0,0,0)'
+                            }}
+                         >
+                            <div className="flex items-center justify-center gap-4 py-4 opacity-70">
+                                <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
+                                <span className="font-bold text-slate-400 dark:text-slate-500 text-xs tracking-widest uppercase">{piece.text || piece.hours}</span>
+                                <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
+                            </div>
+                         </div>
                       </div>
                   )
               }
 
               // Normal Piece Rendering
-              const isSwiped = swipedId === piece.id;
               const weeksAgo = weeksSince(piece.startDate);
-              const chronoIndex = pieceIndices[piece.id];
 
               return (
                 <div
@@ -984,10 +990,7 @@
                     }}
                   >
                     <div className="flex-1 pr-4 pl-2">
-                      <div className="flex items-baseline gap-2">
-                          {chronoIndex && <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600">#{chronoIndex}</span>}
-                          <h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3>
-                      </div>
+                      <h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3>
                       {weeksAgo && (
                         <div className="text-[10px] text-slate-400 mt-1 font-mono">
                           Started: {formatDisplayDate(piece.startDate)} • {weeksAgo}
@@ -1094,7 +1097,7 @@
           </div>
 
           <div className="px-2 text-center text-xs text-slate-400">
-            Piano v50<br />Build: 12.01.2026
+            Piano v51<br />Build: 12.01.2026
           </div>
         </div>
       );
@@ -1248,7 +1251,7 @@
       
       // Divider Modal State
       const [isAddingDivider, setIsAddingDivider] = useState(false);
-      const [dividerHours, setDividerHours] = useState("");
+      const [dividerText, setDividerText] = useState("");
       const [dividerAfterId, setDividerAfterId] = useState("");
 
       const [isRedListMode, setIsRedListMode] = useState(false);
@@ -1375,11 +1378,8 @@
         setIsAdding(false);
       };
 
-      // Add a divider. If 'afterPieceId' is null, it adds to top.
-      // If provided, it inserts it strictly between pieces based on ID sorting logic.
-      // The List view sorts by ID desc (Newest Top). 
-      // To insert "between 4 and 5", we need an ID between Piece4.id and Piece5.id.
-      const addDivider = (hours, afterPieceId) => {
+      const addDivider = (text, afterPieceId) => {
+        if (!text.trim()) return;
         let newId = Date.now();
         
         if (afterPieceId) {
@@ -1393,7 +1393,6 @@
                 const nextId = sorted[index+1].id;
                 newId = (prevId + nextId) / 2;
             } else if (index === sorted.length - 1) {
-                // It's the newest, just use Date.now() or slightly more than last
                 newId = Date.now();
             }
         }
@@ -1401,11 +1400,12 @@
         const newDivider = {
             id: newId,
             type: 'divider',
-            hours: hours
+            text: text, // Store raw text
+            hours: text // Legacy support for old dividers if needed
         };
         setPieces(prev => [newDivider, ...prev]);
         setIsAddingDivider(false);
-        setDividerHours("");
+        setDividerText("");
         setDividerAfterId("");
       };
 
@@ -1466,7 +1466,7 @@
                 <button onClick={() => setView('REPERTOIRE')} className={`p-2 rounded-full transition-colors ${view === 'REPERTOIRE' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconList /></button>
                 <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconCrown /></button>
                 <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400'}`}><IconClock /></button>
-                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v50</button>
+                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? 'bg-white shadow text-indigo-600 dark:bg-slate-600 dark:text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-800'}`}>v51</button>
               </div>
             )}
           </div>
@@ -1492,7 +1492,7 @@
                 setIntervalMilestones={setIntervalMilestones}
                 legacyMeta={legacyMeta}
                 setLegacyMeta={setLegacyMeta}
-                onIntervalAdded={(hours) => addDivider(hours, null)}
+                onIntervalAdded={(h) => addDivider(String(h), null)}
               />
             )}
             {appMode === 'REPS' && <RepetitionsView repState={repState} setRepState={setRepState} />}
@@ -1538,8 +1538,8 @@
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add Divider</h3>
                     <div className="space-y-4 pb-12">
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Hours</label>
-                        <input type="number" autoFocus value={dividerHours} onChange={(e) => setDividerHours(e.target.value)} placeholder="e.g. 100" className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-lg outline-none focus:border-indigo-500" />
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Label</label>
+                        <input type="text" autoFocus value={dividerText} onChange={(e) => setDividerText(e.target.value)} placeholder="e.g. 100 or 'Section B'" className="w-full p-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-lg outline-none focus:border-indigo-500" />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Insert After Piece (Chronological)</label>
@@ -1551,7 +1551,7 @@
                         </select>
                       </div>
                       <div className="flex gap-2 pt-2">
-                        <button onClick={() => addDivider(dividerHours, dividerAfterId)} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold">Add</button>
+                        <button onClick={() => addDivider(dividerText, dividerAfterId)} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold">Add</button>
                         <button onClick={() => setIsAddingDivider(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-semibold">Cancel</button>
                       </div>
                     </div>
@@ -1560,13 +1560,13 @@
             </div>
           )}
 
-          {appMode === 'REPERTOIRE' && (view === 'PRACTICE' || view === 'REPERTOIRE' || view === 'LEADERBOARD') && (
-            <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 z-10 w-full flex gap-2" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                <button onClick={handleStartAdd} className="flex-1 flex items-center justify-center gap-2 p-4 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors border border-dashed border-slate-300 dark:border-slate-600 rounded-xl">
-                  <IconPlus /> Piece
+          {appMode === 'REPERTOIRE' && view === 'REPERTOIRE' && (
+            <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 z-10 w-full flex flex-col items-center gap-3" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                <button onClick={handleStartAdd} className="w-full flex items-center justify-center gap-2 p-4 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 font-bold transition-colors border border-slate-200 dark:border-slate-600 rounded-xl">
+                  <IconPlus /> Add New Piece
                 </button>
-                <button onClick={() => setIsAddingDivider(true)} className="flex-1 flex items-center justify-center gap-2 p-4 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors border border-dashed border-slate-300 dark:border-slate-600 rounded-xl">
-                  <IconDivide /> Divider
+                <button onClick={() => setIsAddingDivider(true)} className="text-xs font-bold text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors flex items-center gap-1">
+                   <IconDivide /> Add Divider
                 </button>
             </div>
           )}
