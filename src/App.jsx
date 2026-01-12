@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Repertoire from './components/Repertoire';
+import Repetitions from './components/Repetitions';
 
 function App() {
   // Load data from localStorage
@@ -34,6 +35,7 @@ function App() {
       </header>
 
       <main className="max-w-md mx-auto p-4 space-y-6">
+        {/* SECTION 1: 10,000 HOURS TRACKER */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <h2 className="text-xl font-bold mb-4 text-slate-700">Progress Tracker</h2>
           <div className="text-center py-6">
@@ -49,7 +51,12 @@ function App() {
           </div>
         </div>
 
+        {/* SECTION 2: REPERTOIRE */}
         <Repertoire repertoire={repertoire} setRepertoire={setRepertoire} />
+
+        {/* SECTION 3: REPETITIONS (Added this!) */}
+        <Repetitions />
+        
       </main>
     </div>
   );
