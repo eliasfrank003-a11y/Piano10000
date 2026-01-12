@@ -1,19 +1,35 @@
 import React, { useState } from 'react';
-import { Plus, X, Music, Minus } from 'lucide-react';
+import { Plus, X, Music, Minus, Circle } from 'lucide-react';
 
-const Repertoire = ({ repertoire, setRepertoire }) => {
+const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList }) => {
+  const displayedPieces = isRedListMode 
+    ? repertoire.filter(p => p.status === 'red' && p.type !== 'divider') 
+    : repertoire;
+
+  // --- MODAL STATE (New Feature) ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState('piece'); // 'piece' or 'divider'
-  
-  // Form States
+  const [modalMode, setModalMode] = useState('piece'); 
   const [newPieceTitle, setNewPieceTitle] = useState("");
   const [newPieceComposer, setNewPieceComposer] = useState("");
   const [newPieceStatus, setNewPieceStatus] = useState("In Progress");
   const [dividerText, setDividerText] = useState("");
-  
-  // Insertion Logic
-  const [insertPosition, setInsertPosition] = useState("end"); // 'end' or 'after'
+  const [insertPosition, setInsertPosition] = useState("end");
   const [insertAfterId, setInsertAfterId] = useState("");
+
+  // --- ACTIONS ---
+  const deletePiece = (id) => { if (confirm("Delete this?")) setRepertoire(repertoire.filter(p => p.id !== id)); };
+  
+  const cyclePieceStatus = (id) => {
+     setRepertoire(repertoire.map(p => {
+        if (p.id !== id) return p;
+        const current = p.status || 'normal';
+        let next = 'normal';
+        if (current === 'normal') next = 'red';
+        else if (current === 'red') next = 'green';
+        else if (current === 'green') next = 'normal';
+        return { ...p, status: next };
+     }));
+  };
 
   const handleAdd = () => {
     const newId = Date.now();
@@ -25,220 +41,128 @@ const Repertoire = ({ repertoire, setRepertoire }) => {
         id: newId,
         type: 'piece',
         title: newPieceTitle,
-        composer: newPieceComposer,
-        status: newPieceStatus,
-        repetitions: 0,
-        mastered: false
+        composer: newPieceComposer, // Storing for future use
+        status: newPieceStatus === 'Mastered' ? 'green' : 'normal',
+        startDate: new Date().toISOString().split('T')[0],
+        playCount: 0
       };
     } else {
-      // Divider Logic
       newItem = {
         id: newId,
         type: 'divider',
-        title: dividerText.trim() === "" ? "-----------------" : `--- ${dividerText} ---`
+        text: dividerText.trim() === "" ? "-----------------" : `--- ${dividerText} ---`
       };
     }
 
     let updatedRepertoire = [...repertoire];
-
     if (insertPosition === 'end') {
       updatedRepertoire.push(newItem);
     } else {
       const index = updatedRepertoire.findIndex(p => p.id === Number(insertAfterId));
-      if (index !== -1) {
-        updatedRepertoire.splice(index + 1, 0, newItem);
-      } else {
-        updatedRepertoire.push(newItem);
-      }
+      if (index !== -1) updatedRepertoire.splice(index + 1, 0, newItem);
+      else updatedRepertoire.push(newItem);
     }
-
     setRepertoire(updatedRepertoire);
-    resetForm();
     setIsModalOpen(false);
+    setNewPieceTitle(""); setDividerText("");
   };
 
-  const resetForm = () => {
-    setNewPieceTitle("");
-    setNewPieceComposer("");
-    setDividerText("");
-    setInsertPosition("end");
-    setInsertAfterId("");
-  };
-
-  const deleteItem = (id) => {
-    setRepertoire(repertoire.filter(item => item.id !== id));
+  const IconDot = ({ status }) => {
+      let colorClass = "text-slate-300";
+      if (status === 'red') colorClass = "text-red-500";
+      if (status === 'green') colorClass = "text-green-500";
+      return <Circle size={12} fill={status === 'red' || status === 'green' ? "currentColor" : "none"} className={colorClass} strokeWidth={3} />;
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
-      {/* Header with Plus Button */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-800">My Repertoire</h2>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors shadow-sm"
-          title="Add Piece or Divider"
-        >
-          <Plus size={20} />
-        </button>
-      </div>
-
-      {/* List */}
-      <div className="space-y-3">
-        {repertoire.map((item, index) => (
-          <div key={item.id} className="group flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100">
-            
-            {item.type === 'divider' ? (
-              // DIVIDER VIEW
-              <div className="w-full flex items-center justify-center text-slate-400 font-mono text-sm">
-                {item.title}
-              </div>
-            ) : (
-              // PIECE VIEW
-              <div className="flex items-center gap-4 overflow-hidden">
-                <div className="w-8 h-8 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-full text-sm font-semibold flex-shrink-0">
-                  {index + 1}
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-slate-800 truncate">{item.title}</h3>
-                  <p className="text-sm text-slate-500 truncate">{item.composer}</p>
-                </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  item.status === 'Mastered' ? 'bg-emerald-100 text-emerald-700' :
-                  item.status === 'In Progress' ? 'bg-amber-100 text-amber-700' :
-                  'bg-slate-100 text-slate-600'
-                }`}>
-                  {item.status}
-                </span>
-              </div>
-            )}
-
-            <button 
-              onClick={() => deleteItem(item.id)}
-              className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 transition-all"
-            >
-              <X size={18} />
+    <div className="flex-1 overflow-y-auto p-4 w-full pb-24">
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-4 px-2">
+        <div className="text-sm font-bold uppercase tracking-wider text-slate-400">My Repertoire</div>
+        <div className="flex gap-2">
+            <button onClick={toggleRedList} className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border transition-all ${isRedListMode ? 'bg-red-500 text-white border-red-500' : 'bg-transparent text-slate-400 border-slate-300'}`}>
+              <IconDot status={isRedListMode ? 'red' : 'normal'} /> {isRedListMode ? 'Red List Active' : 'Show Red List'}
             </button>
-          </div>
-        ))}
+            <button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 text-white p-1 rounded-full"><Plus size={16}/></button>
+        </div>
       </div>
 
-      {/* MODAL OVERLAY */}
+      {/* LIST */}
+      <div className="space-y-3 pb-8">
+         {displayedPieces.map((piece, index) => {
+             if (piece.type === 'divider') {
+                 return (
+                     <div key={piece.id} className="relative py-4 flex items-center justify-center gap-4 opacity-70">
+                         <div className="h-px bg-slate-300 flex-1"></div>
+                         <span className="font-bold text-slate-400 text-xs tracking-widest uppercase">{piece.text || piece.title}</span>
+                         <div className="h-px bg-slate-300 flex-1"></div>
+                         <button onClick={() => deletePiece(piece.id)} className="absolute right-0 text-slate-300 hover:text-red-500"><X size={14}/></button>
+                     </div>
+                 );
+             }
+             return (
+                 <div key={piece.id} className="relative rounded-xl overflow-hidden bg-white border border-slate-100 shadow-sm flex items-center justify-between p-4">
+                     <div className="flex-1 pr-4 pl-2">
+                         <h3 className="font-medium text-slate-900">{piece.title}</h3>
+                         <div className="text-[10px] text-slate-400 mt-1 font-mono">
+                           Started: {piece.startDate} • Plays: {piece.playCount || 0}
+                         </div>
+                     </div>
+                     <div className="flex items-center gap-3">
+                        <button onClick={() => cyclePieceStatus(piece.id)} className="p-2">
+                            <IconDot status={piece.status} />
+                        </button>
+                        <button onClick={() => deletePiece(piece.id)} className="text-slate-300 hover:text-red-500"><X size={16}/></button>
+                     </div>
+                 </div>
+             );
+         })}
+         {displayedPieces.length === 0 && <div className="text-center text-slate-400 mt-10 p-6">No pieces found.</div>}
+      </div>
+
+      {/* NEW MODAL (From your request) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-            
-            {/* Modal Header */}
             <div className="flex border-b border-slate-100">
-              <button 
-                onClick={() => setModalMode('piece')}
-                className={`flex-1 p-4 font-medium text-sm flex items-center justify-center gap-2 ${modalMode === 'piece' ? 'bg-white text-indigo-600 border-b-2 border-indigo-600' : 'bg-slate-50 text-slate-500'}`}
-              >
+              <button onClick={() => setModalMode('piece')} className={`flex-1 p-4 font-medium text-sm flex items-center justify-center gap-2 ${modalMode === 'piece' ? 'bg-white text-indigo-600 border-b-2 border-indigo-600' : 'bg-slate-50 text-slate-500'}`}>
                 <Music size={16} /> Add Piece
               </button>
-              <button 
-                onClick={() => setModalMode('divider')}
-                className={`flex-1 p-4 font-medium text-sm flex items-center justify-center gap-2 ${modalMode === 'divider' ? 'bg-white text-indigo-600 border-b-2 border-indigo-600' : 'bg-slate-50 text-slate-500'}`}
-              >
+              <button onClick={() => setModalMode('divider')} className={`flex-1 p-4 font-medium text-sm flex items-center justify-center gap-2 ${modalMode === 'divider' ? 'bg-white text-indigo-600 border-b-2 border-indigo-600' : 'bg-slate-50 text-slate-500'}`}>
                 <Minus size={16} /> Add Divider
               </button>
             </div>
-
-            {/* Modal Body */}
             <div className="p-6 space-y-4">
-              
-              {/* INPUTS */}
               {modalMode === 'piece' ? (
                 <>
-                  <input
-                    placeholder="Piece Title"
-                    value={newPieceTitle}
-                    onChange={(e) => setNewPieceTitle(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                    autoFocus
-                  />
-                  <input
-                    placeholder="Composer"
-                    value={newPieceComposer}
-                    onChange={(e) => setNewPieceComposer(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                  <select
-                    value={newPieceStatus}
-                    onChange={(e) => setNewPieceStatus(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                  >
-                    <option>In Progress</option>
-                    <option>Mastered</option>
-                    <option>Wishlist</option>
-                  </select>
+                  <input placeholder="Piece Title" value={newPieceTitle} onChange={(e) => setNewPieceTitle(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" autoFocus />
+                  <input placeholder="Composer (Optional)" value={newPieceComposer} onChange={(e) => setNewPieceComposer(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </>
               ) : (
                 <div className="text-center space-y-2">
                    <p className="text-sm text-slate-500">Leave empty for a solid line</p>
-                   <input
-                    placeholder="Section Name (Optional)"
-                    value={dividerText}
-                    onChange={(e) => setDividerText(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-center"
-                    autoFocus
-                  />
+                   <input placeholder="Section Name" value={dividerText} onChange={(e) => setDividerText(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-center" autoFocus />
                 </div>
               )}
-
-              {/* INSERT POSITION LOGIC */}
+              {/* Insert Logic */}
               <div className="pt-2 border-t border-slate-100">
                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Position</label>
                  <div className="flex gap-2 mb-3">
-                    <button 
-                      onClick={() => setInsertPosition('end')}
-                      className={`flex-1 py-2 text-xs rounded-lg border ${insertPosition === 'end' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'border-slate-200 text-slate-600'}`}
-                    >
-                      End of List
-                    </button>
-                    <button 
-                      onClick={() => setInsertPosition('after')}
-                      className={`flex-1 py-2 text-xs rounded-lg border ${insertPosition === 'after' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'border-slate-200 text-slate-600'}`}
-                    >
-                      After Piece...
-                    </button>
+                    <button onClick={() => setInsertPosition('end')} className={`flex-1 py-2 text-xs rounded-lg border ${insertPosition === 'end' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'border-slate-200 text-slate-600'}`}>End of List</button>
+                    <button onClick={() => setInsertPosition('after')} className={`flex-1 py-2 text-xs rounded-lg border ${insertPosition === 'after' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'border-slate-200 text-slate-600'}`}>After...</button>
                  </div>
-                 
                  {insertPosition === 'after' && (
-                   <select 
-                    className="w-full p-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
-                    value={insertAfterId}
-                    onChange={(e) => setInsertAfterId(e.target.value)}
-                   >
+                   <select className="w-full p-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none" value={insertAfterId} onChange={(e) => setInsertAfterId(e.target.value)}>
                      <option value="">Select a piece...</option>
-                     {repertoire.map(p => (
-                       <option key={p.id} value={p.id}>
-                         {/* FIX: Shows only title, no double numbers */}
-                         {p.title}
-                       </option>
-                     ))}
+                     {repertoire.filter(p=>p.type!=='divider').map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
                    </select>
                  )}
               </div>
-
-              {/* ACTION BUTTONS */}
               <div className="flex gap-3 pt-2">
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-3 text-slate-600 font-medium hover:bg-slate-50 rounded-xl transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleAdd}
-                  disabled={modalMode === 'piece' && !newPieceTitle}
-                  className="flex-1 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-200"
-                >
-                  Add {modalMode === 'piece' ? 'Piece' : 'Divider'}
-                </button>
+                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-slate-600 font-medium hover:bg-slate-50 rounded-xl">Cancel</button>
+                <button onClick={handleAdd} className="flex-1 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700">Add</button>
               </div>
             </div>
-
           </div>
         </div>
       )}
