@@ -1,70 +1,36 @@
-import React, { useState } from 'react';
-import { RefreshCw, Check, X } from 'lucide-react';
+import React from 'react';
+import { RefreshCw } from 'lucide-react';
 
-const Repetitions = () => {
-  // Sample data - You can edit this later
-  const [items, setItems] = useState([
-    { id: 1, title: "C Major Scale", interval: "Daily", nextDue: "Today" },
-    { id: 2, title: "Hanon Ex. 1", interval: "Every 2 days", nextDue: "Tomorrow" },
-  ]);
-
-  const [newItem, setNewItem] = useState("");
-
-  const handleAdd = () => {
-    if (!newItem) return;
-    setItems([...items, { 
-      id: Date.now(), 
-      title: newItem, 
-      interval: "Daily", 
-      nextDue: "Today" 
-    }]);
-    setNewItem("");
-  };
-
-  const deleteItem = (id) => {
-    setItems(items.filter(i => i.id !== id));
-  };
+const Repetitions = ({ repState, setRepState }) => {
+  const { count, target } = repState;
+  
+  const updateCount = (newCount) => setRepState(prev => ({ ...prev, count: newCount }));
+  const setTarget = (val) => setRepState(prev => ({ ...prev, target: val, count: val }));
+  
+  const handleTap = () => { updateCount(count > 0 ? count - 1 : 0); };
+  const handleReset = () => updateCount(parseInt(target) || 5);
+  const handleTargetChange = (e) => { const val = parseInt(e.target.value) || 0; setRepState(prev => ({ ...prev, target: val, count: val })); };
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-slate-700">Spaced Repetition</h2>
-        <RefreshCw size={20} className="text-indigo-400" />
+    <div className="flex-1 flex flex-col p-6 h-full pb-24">
+      <div className="flex gap-2 mb-6">
+        <button onClick={() => setTarget(5)} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold active:scale-95 transition-transform">5</button>
+        <button onClick={() => setTarget(20)} className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold active:scale-95 transition-transform">20</button>
+        <div className="flex items-center gap-2 bg-slate-100 px-4 rounded-xl border border-slate-200">
+          <span className="text-xs font-bold text-slate-400">Custom:</span>
+          <input type="number" value={target} onChange={handleTargetChange} className="w-12 bg-transparent text-right font-bold text-slate-900 outline-none py-3" />
+        </div>
       </div>
-
-      <div className="flex gap-2 mb-4">
-        <input
-          value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
-          placeholder="Add new exercise..."
-          className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <button 
-          onClick={handleAdd}
-          className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors"
-        >
-          Add
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        {items.map(item => (
-          <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <div>
-              <h3 className="font-semibold text-slate-800">{item.title}</h3>
-              <p className="text-xs text-slate-500">Interval: {item.interval}</p>
-            </div>
-            <div className="flex items-center gap-2">
-               <span className="text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md">
-                 {item.nextDue}
-               </span>
-               <button onClick={() => deleteItem(item.id)} className="p-2 text-slate-400 hover:text-red-500">
-                 <X size={16} />
-               </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      
+      <button onClick={handleTap} className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 active:scale-[0.98] transition-transform rounded-3xl shadow-xl flex flex-col items-center justify-center text-white mb-6 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-white/10 opacity-0 group-active:opacity-100 transition-opacity"></div>
+        <div className="text-9xl font-bold tracking-tighter drop-shadow-md select-none">{count}</div>
+        <div className="text-white/60 font-medium uppercase tracking-widest mt-2 text-sm">Tap to Reduce</div>
+      </button>
+      
+      <button onClick={handleReset} className="p-4 bg-slate-100 rounded-xl text-slate-500 font-bold flex items-center justify-center gap-2 active:bg-slate-200 transition-colors shrink-0">
+        <RefreshCw size={18} /> Reset Counter
+      </button>
     </div>
   );
 };
