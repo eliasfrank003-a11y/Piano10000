@@ -237,14 +237,14 @@ function App() {
   };
 
   const addDivider = (text, afterPieceId) => {
-    if (!text.trim()) return;
+    // EDITED: Removed check for text.trim() to allow empty dividers
     let newId = Date.now();
     if (afterPieceId) {
        const sorted = [...pieces].sort((a,b) => a.id - b.id);
        const index = sorted.findIndex(p => p.id === Number(afterPieceId));
        if (index !== -1 && index < sorted.length - 1) newId = (sorted[index].id + sorted[index+1].id) / 2;
     }
-    setPieces(prev => [{ id: newId, type: 'divider', text: text }, ...prev]);
+    setPieces(prev => [{ id: newId, type: 'divider', text: text || "" }, ...prev]);
     setIsAddingDivider(false); setDividerText("");
   };
 
@@ -261,7 +261,6 @@ function App() {
          <button onClick={cycleMode} className="flex flex-col items-start justify-center h-10">
             <h1 className="text-lg font-bold flex items-center gap-2 active:opacity-50 transition-opacity">
                 {appMode === 'REPERTOIRE' && <><Music /> Repertoire <ChevronDown /></>}
-                {/* EDITED: Changed 10,000 to 10.000 */}
                 {appMode === '10K' && <><Timer /> 10.000 Hours <ChevronDown /></>}
                 {appMode === 'REPS' && <><RotateCw /> Repetitions <ChevronDown /></>}
             </h1>
@@ -294,11 +293,16 @@ function App() {
                 {view === 'PRACTICE' && <Practice currentPiece={currentPiece} pickPiece={pickPiece} stopSession={() => { setCurrentPiece(null); setSessionFilter(false); }} redListCount={pieces.filter(p => p.status === 'red' && p.type !== 'divider').length} />}
                 {view === 'LIST' && (
                     <div className="flex flex-col h-full">
-                       <Repertoire repertoire={pieces} setRepertoire={setPieces} isRedListMode={isRedListMode} toggleRedList={() => setIsRedListMode(!isRedListMode)} />
-                       <div className={`p-6 border-t shrink-0 z-10 w-full flex flex-col items-center gap-3 safe-area-pb ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                           <button onClick={handleStartAdd} className={`w-full flex items-center justify-center gap-2 p-4 font-bold transition-colors border rounded-xl ${isDark ? 'bg-slate-700/50 text-white hover:bg-slate-700 border-slate-600' : 'bg-slate-50 text-slate-900 hover:bg-slate-100 border-slate-200'}`}><IconPlus /> Add New Piece</button>
-                           <button onClick={() => setIsAddingDivider(true)} className={`text-xs font-bold transition-colors flex items-center gap-1 ${isDark ? 'text-slate-400 hover:text-indigo-400' : 'text-slate-400 hover:text-indigo-500'}`}><IconDivide /> Add Divider</button>
-                       </div>
+                       {/* EDITED: Passed 'onOpenAddPiece' and 'onOpenAddDivider' props */}
+                       <Repertoire 
+                          repertoire={pieces} 
+                          setRepertoire={setPieces} 
+                          isRedListMode={isRedListMode} 
+                          toggleRedList={() => setIsRedListMode(!isRedListMode)} 
+                          onOpenAddPiece={handleStartAdd} 
+                          onOpenAddDivider={() => setIsAddingDivider(true)}
+                       />
+                       {/* EDITED: REMOVED THE BOTTOM BUTTONS DIV HERE */}
                     </div>
                 )}
                 {view === 'LEADERBOARD' && <Leaderboard sortedPieces={sortedPieces} />}
