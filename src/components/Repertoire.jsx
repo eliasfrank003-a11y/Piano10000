@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Trash } from 'lucide-react';
+import { Trash, Plus, Music, Divide } from 'lucide-react';
 
 // --- EXACT ICON FROM LEGACY ---
 const IconDot = ({ status }) => {
@@ -39,7 +39,7 @@ function formatDisplayDate(dateString) {
       .replace(/\//g, '.');
 }
 
-const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList }) => {
+const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList, onOpenAddPiece, onOpenAddDivider }) => {
   // Sort pieces exactly like Legacy (Newest ID first)
   const sortedPieces = [...repertoire].sort((a, b) => b.id - a.id);
   
@@ -49,6 +49,7 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
 
   const [swipedId, setSwipedId] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false); // State for the new popup
   const [editForm, setEditForm] = useState({ title: '', date: '' });
   const touchStartX = useRef(null);
 
@@ -101,13 +102,41 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
   return (
     <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       
-      {/* Header */}
+      {/* Header with New Plus Button */}
       <div className="flex items-center justify-between mb-4 px-2">
         <div className="text-sm font-bold uppercase tracking-wider text-slate-400">My Repertoire</div>
+        
+        {/* NEW CENTERED PLUS BUTTON */}
+        <button onClick={() => setIsAddMenuOpen(true)} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors">
+            <Plus size={18} />
+        </button>
+
         <button onClick={toggleRedList} className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border transition-all ${isRedListMode ? 'bg-red-500 text-white border-red-500' : 'bg-transparent text-slate-400 border-slate-300 dark:border-slate-600'}`}>
-          <IconDot status={isRedListMode ? 'red' : 'normal'} /> {isRedListMode ? 'Red List Active' : 'Show Red List'}
+          <IconDot status={isRedListMode ? 'red' : 'normal'} /> {isRedListMode ? 'Red List' : 'Show Red'}
         </button>
       </div>
+
+      {/* NEW: ADD MENU POPUP */}
+      {isAddMenuOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height, 100vh)' }}>
+           <div className="min-h-full flex items-center justify-center p-4">
+              <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add to Library</h3>
+                <div className="space-y-3">
+                  <button onClick={() => { setIsAddMenuOpen(false); onOpenAddPiece(); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left">
+                     <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-full text-indigo-600 dark:text-indigo-400"><Music size={20} /></div>
+                     <div className="font-bold text-slate-700 dark:text-slate-200">New Piece</div>
+                  </button>
+                  <button onClick={() => { setIsAddMenuOpen(false); onOpenAddDivider(); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left">
+                     <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-full text-slate-500 dark:text-slate-400"><Divide size={20} /></div>
+                     <div className="font-bold text-slate-700 dark:text-slate-200">New Divider</div>
+                  </button>
+                  <button onClick={() => setIsAddMenuOpen(false)} className="w-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold mt-2">Cancel</button>
+                </div>
+              </div>
+           </div>
+        </div>
+      )}
 
       {/* Edit Modal Overlay */}
       {editingId && (
@@ -136,7 +165,7 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
         {[...displayedPieces].map((piece) => {
           const isSwiped = swipedId === piece.id;
           
-          // --- DIVIDER RENDERING (Exact match to old version) ---
+          // --- DIVIDER RENDERING ---
           if (piece.type === 'divider') {
               return (
                   <div key={piece.id} className="relative overflow-hidden isolate">
@@ -156,11 +185,18 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList })
                             transform: isSwiped ? 'translate3d(-6rem,0,0)' : 'translate3d(0,0,0)' 
                         }}
                      >
-                        <div className="flex items-center justify-center gap-4 py-4 opacity-70">
-                            <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
-                            <span className="font-bold text-slate-400 dark:text-slate-500 text-xs tracking-widest uppercase">{piece.text || piece.hours}</span>
-                            <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
-                        </div>
+                        {/* UPDATED: Handle empty text for continuous line */}
+                        {piece.text && piece.text.trim() !== "" ? (
+                            <div className="flex items-center justify-center gap-4 py-4 opacity-70">
+                                <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
+                                <span className="font-bold text-slate-400 dark:text-slate-500 text-xs tracking-widest uppercase">{piece.text}</span>
+                                <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center py-4 opacity-70">
+                                <div className="h-px bg-slate-300 dark:bg-slate-600 w-full"></div>
+                            </div>
+                        )}
                      </div>
                   </div>
               )
