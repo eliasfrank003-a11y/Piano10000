@@ -261,7 +261,8 @@ function App() {
          <button onClick={cycleMode} className="flex flex-col items-start justify-center h-10">
             <h1 className="text-lg font-bold flex items-center gap-2 active:opacity-50 transition-opacity">
                 {appMode === 'REPERTOIRE' && <><Music /> Repertoire <ChevronDown /></>}
-                {appMode === '10K' && <><Timer /> 10,000 Hours <ChevronDown /></>}
+                {/* EDITED: Changed 10,000 to 10.000 */}
+                {appMode === '10K' && <><Timer /> 10.000 Hours <ChevronDown /></>}
                 {appMode === 'REPS' && <><RotateCw /> Repetitions <ChevronDown /></>}
             </h1>
          </button>
