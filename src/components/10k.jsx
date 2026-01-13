@@ -323,8 +323,9 @@ const Tracker = ({
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700 z-20 relative">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
-          <button onClick={openAdd} className="text-xs font-bold text-indigo-500 flex items-center gap-1 bg-indigo-50 dark:bg-slate-800 px-3 py-1.5 rounded-full">
-            <Plus size={16} /> Add Milestone
+          {/* EDITED: Simplified Plus button */}
+          <button onClick={openAdd} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors">
+            <Plus size={18} />
           </button>
         </div>
 
@@ -479,7 +480,8 @@ const Tracker = ({
           </div>
 
           <div className="relative mt-6 pb-12">
-            <div className="absolute left-8 top-[3.5rem] bottom-8 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0"></div>
+            {/* EDITED: Changed top-[3.5rem] to top-8 so the line goes UP BEHIND the first point */}
+            <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0"></div>
 
             <div className="relative z-10 mb-8 pl-16">
               <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-50 dark:ring-slate-900"></div>
