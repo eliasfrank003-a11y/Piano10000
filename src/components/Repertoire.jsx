@@ -102,7 +102,7 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList, o
   return (
     <div className="flex flex-col h-full w-full">
       {/* SCROLLABLE LIST AREA */}
-      <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: '0' }}>
+      <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: '24px' }}>
         
         {/* Header with Adjusted Plus Button Position */}
         <div className="flex items-center justify-between mb-4 px-2">
@@ -237,16 +237,6 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList, o
           })}
           {displayedPieces.length === 0 && <div className="text-center text-slate-400 mt-10 p-6">No pieces found.</div>}
         </div>
-      </div>
-
-      {/* FIXED BOTTOM BUTTONS - EXACTLY AS OG APP */}
-      <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 z-10 w-full flex flex-col items-center gap-3" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <button onClick={onOpenAddPiece} className="w-full flex items-center justify-center gap-2 p-4 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 font-bold transition-colors border border-slate-200 dark:border-slate-600 rounded-xl">
-            <Plus size={20} /> Add New Piece
-          </button>
-          <button onClick={onOpenAddDivider} className="text-xs font-bold text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors flex items-center gap-1">
-             <Divide size={18} /> Add Divider
-          </button>
       </div>
     </div>
   );
