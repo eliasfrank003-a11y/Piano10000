@@ -17,11 +17,17 @@ const LEGACY_MILESTONES = [
   { hours: 400, date: new Date("2024-11-13"), avg: "1h 24m", type: 'legacy' },
 ];
 
+// --- HELPERS ---
 function formatDecimalToHMS(decimalHours) {
   const totalSeconds = Math.round(decimalHours * 3600);
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = Math.round(totalSeconds % 60);
+  
+  if (h === 0) {
+      if (m === 0) return `${s}s`;
+      return `${m}m ${s}s`;
+  }
   return `${h}h ${m}m ${s}s`;
 }
 
@@ -36,20 +42,8 @@ function formatAvgTime(str) {
   if (str.includes('h') && str.includes('m')) return str;
   let match = str.match(/^(\d+):(\d+):(\d+)$/);
   if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m ${parseInt(match[3])}s`;
-  match = str.match(/^(\d+):(\d+)$/);
-  if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m`;
   
-  if (/^\d{5,6}$/.test(str)) {
-     const s = parseInt(str.slice(-2), 10);
-     const m = parseInt(str.slice(-4, -2), 10);
-     const h = parseInt(str.slice(0, -4), 10);
-     return `${h}h ${m}m ${s}s`;
-  }
-  if (/^\d{3,4}$/.test(str)) {
-     const m = parseInt(str.slice(-2), 10);
-     const h = parseInt(str.slice(0, -2), 10);
-     return `${h}h ${m}m`;
-  }
+  // Clean up "0h" in string formats if needed, though usually used for input
   return str;
 }
 
@@ -70,27 +64,29 @@ async function fetchGoogleCalendarEvents(token) {
     let allCalendars = [];
     let calPageToken = null;
     do {
-       let calUrl = 'https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader';
-       if (calPageToken) calUrl += `&pageToken=${calPageToken}`;
+       let calUrl = 'https://www.googleapis.com/calendar/v3/users/me/calendarList';
+       if (calPageToken) calUrl += `?pageToken=${calPageToken}`;
        
        const response = await fetch(calUrl, { headers: { Authorization: `Bearer ${token}` } });
+       if (!response.ok) {
+           const errData = await response.json();
+           throw new Error(`Google API Error: ${errData.error?.message || response.statusText}`);
+       }
+
        const data = await response.json();
        if (data.items) allCalendars = allCalendars.concat(data.items);
        calPageToken = data.nextPageToken;
     } while (calPageToken);
 
-    // Try to find 'ATracker' with robust matching
     const targetName = 'atracker';
     let calendar = allCalendars.find(c => c.summary && c.summary.trim().toLowerCase() === targetName);
-
-    // Fallback: Try "includes"
     if (!calendar) {
         calendar = allCalendars.find(c => c.summary && c.summary.toLowerCase().includes(targetName));
     }
 
     if (!calendar) {
         const foundNames = allCalendars.map(c => c.summary).join(", ");
-        throw new Error(`Calendar 'ATracker' not found. I found these calendars: ${foundNames}.`);
+        throw new Error(`Calendar 'ATracker' not found. I found: ${foundNames || "(None)"}.`);
     }
 
     let allEvents = [];
@@ -99,6 +95,12 @@ async function fetchGoogleCalendarEvents(token) {
       let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events?singleEvents=true&orderBy=startTime&timeMin=${START_DATE.toISOString()}&maxResults=2500`;
       if (eventPageToken) url += `&pageToken=${eventPageToken}`;
       const eventsResponse = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      
+      if (!eventsResponse.ok) {
+           const errData = await eventsResponse.json();
+           throw new Error(`Events Fetch Error: ${errData.error?.message || eventsResponse.statusText}`);
+      }
+
       const eventsData = await eventsResponse.json();
       if (eventsData.items) allEvents = allEvents.concat(eventsData.items);
       eventPageToken = eventsData.nextPageToken;
@@ -129,7 +131,7 @@ const Tracker = ({
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
-  const [graphRange, setGraphRange] = useState(7);
+  const [graphRange, setGraphRange] = useState(7); // 7, 30, or 365
   
   // --- STATS LOGIC ---
   const stats = useMemo(() => {
@@ -185,48 +187,82 @@ const Tracker = ({
     };
   }, [externalHistory]);
 
-  // --- CHART LOGIC ---
+  // --- CHART LOGIC (REVISED) ---
   const stockChartData = useMemo(() => {
-    if (externalHistory.length === 0 || !stats) return null;
+    if (!stats || !externalHistory) return null;
     
     const now = new Date();
+    // Normalize "today" to midnight for consistent comparisons
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Create map of daily play
     const dailyPlayMap = {};
+    let firstDataDate = null;
+    
+    // Find the very first logged date in history to handle "starting today"
+    if (externalHistory.length > 0) {
+        // Sort first
+        const sorted = [...externalHistory].sort((a,b) => a.id - b.id);
+        const first = new Date(sorted[0].id);
+        firstDataDate = new Date(first.getFullYear(), first.getMonth(), first.getDate());
+    }
+
     externalHistory.forEach(s => {
-        const key = new Date(s.id).toDateString();
+        const d = new Date(s.id);
+        const key = d.toDateString();
         dailyPlayMap[key] = (dailyPlayMap[key] || 0) + s.duration;
     });
 
-    let totalAtStart = stats.totalPlayed;
-    let daysAtStart = stats.daysPassed;
-    
-    for(let i=0; i<graphRange; i++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        const played = dailyPlayMap[d.toDateString()] || 0;
-        totalAtStart -= played;
-        daysAtStart -= 1;
-    }
-    
-    const baseAvg = totalAtStart / daysAtStart;
-    
     const points = [];
     let currentCumulativeDelta = 0; 
     
-    for(let i=graphRange-1; i>=0; i--) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        const played = dailyPlayMap[d.toDateString()] || 0;
-        const deltaSeconds = (played - baseAvg) * 3600;
-        currentCumulativeDelta += deltaSeconds;
+    // Determine Start Date based on Range
+    let loopStartDate = new Date(todayMidnight);
+    
+    if (graphRange === 7) {
+        // "This Week" logic: Start on Monday
+        const day = loopStartDate.getDay();
+        const diff = loopStartDate.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        loopStartDate.setDate(diff);
+    } else if (graphRange === 30) {
+        loopStartDate.setDate(todayMidnight.getDate() - 29);
+    } else if (graphRange === 365) {
+        loopStartDate.setDate(todayMidnight.getDate() - 364);
+    }
+
+    // Baseline is LIFETIME AVERAGE to show improvement
+    const baseAvg = stats.avgNumeric;
+
+    // Generate days from LoopStart to Today
+    const dateIterator = new Date(loopStartDate);
+    let xIndex = 0;
+
+    while (dateIterator <= todayMidnight) {
+        // "Smart Start": If we are in 7D mode, and the dateIterator is BEFORE the user's first ever log, 
+        // we skip plotting it (or plot as 0 delta) so they don't see a drop for days they hadn't started yet.
+        const isBeforeHistory = firstDataDate && dateIterator < firstDataDate;
         
-        points.push({
-            x: graphRange - 1 - i,
-            y: currentCumulativeDelta,
-            date: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
-            fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        });
+        if (!isBeforeHistory) {
+            const played = dailyPlayMap[dateIterator.toDateString()] || 0;
+            const deltaSeconds = (played - baseAvg) * 3600;
+            currentCumulativeDelta += deltaSeconds;
+            
+            points.push({
+                x: xIndex,
+                y: currentCumulativeDelta,
+                date: dateIterator.toLocaleDateString('en-US', { weekday: 'narrow' }),
+                fullDate: dateIterator.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            });
+            xIndex++;
+        }
+        
+        // Next day
+        dateIterator.setDate(dateIterator.getDate() + 1);
     }
     
+    if (points.length === 0) return null;
+
+    // Dynamic Scale
     const yValues = points.map(p => p.y);
     const minY = Math.min(0, ...yValues);
     const maxY = Math.max(0, ...yValues);
@@ -240,7 +276,10 @@ const Tracker = ({
     const width = 100;
     const height = 100;
     
-    const getX = (idx) => (idx / (graphRange - 1)) * width;
+    // X Scale depends on how many points we actually have
+    const maxX = points.length > 1 ? points.length - 1 : 1;
+    
+    const getX = (idx) => (idx / maxX) * width;
     const getY = (val) => height - ((val - effectiveMin) / effectiveRange) * height;
 
     const pathD = points.map((p, i) => 
@@ -259,13 +298,8 @@ const Tracker = ({
     setSyncError(null);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
-      // UPDATED SCOPE: Use calendar.readonly to allow listing calendars
       provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
-      
-      // Keep consent prompt to ensure checkboxes appear if permissions were lost
-      provider.setCustomParameters({ 
-        prompt: 'consent' 
-      });
+      // REMOVED: prompt: 'consent' -> behaves like a refresh now
 
       const result = await firebase.auth().signInWithPopup(provider);
       const token = result.credential.accessToken;
@@ -280,16 +314,16 @@ const Tracker = ({
       }).filter(Boolean);
       
       setExternalHistory(processedSessions);
-      alert(`Success! Synced ${processedSessions.length} sessions.`);
+      // Removed alert to make it smoother, or keep a small toast if you prefer
+      // alert(`Success! Synced ${processedSessions.length} sessions.`); 
       
     } catch (err) {
-      const msg = err.message.replace("Firebase: ", "").replace(/\(.*\)/, "");
-      setSyncError(msg);
-      if (msg.includes("I found these calendars")) {
-          alert("Sync Failed:\n" + msg + "\n\nTip: Make sure you check all boxes in the Google permissions screen.");
-      } else {
-          alert("Sync Failed:\n" + msg);
+      let msg = err.message.replace("Firebase: ", "").replace(/\(.*\)/, "");
+      if (msg.includes("Legacy People API")) {
+          msg = "Please enable the Google Calendar API in your Google Cloud Console.";
       }
+      setSyncError(msg);
+      alert("Sync Failed:\n" + msg);
     } finally {
       setIsSyncing(false);
     }
@@ -354,6 +388,12 @@ const Tracker = ({
       if (totalSeconds < 60) return `${Math.round(totalSeconds)}s`;
       const mins = Math.floor(totalSeconds / 60);
       const hrs = Math.floor(mins/60);
+      
+      // Smart format: Hide hours if 0
+      if (hrs === 0) {
+          if (mins === 0) return `${Math.round(totalSeconds % 60)}s`;
+          return `${mins}m ${Math.round(totalSeconds % 60)}s`;
+      }
       return `${hrs}h ${mins%60}m`;
     };
     const diffSeconds = ((stats.totalPlayed / stats.daysPassed) - (stats.totalPlayed / (stats.daysPassed + 1))) * 3600;
@@ -381,21 +421,11 @@ const Tracker = ({
         <div className="flex gap-4 items-center">
           <div className="flex-1">
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Hours</label>
-            <input 
-              type="number" 
-              readOnly 
-              value={stats ? Math.floor(stats.totalPlayed) : 0} 
-              className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 outline-none text-slate-900 dark:text-white p-1" 
-            />
+            <input type="number" readOnly value={stats ? Math.floor(stats.totalPlayed) : 0} className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 outline-none text-slate-900 dark:text-white p-1" />
           </div>
           <div className="flex-1">
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Minutes</label>
-            <input 
-              type="number" 
-              readOnly 
-              value={stats ? Math.round((stats.totalPlayed % 1) * 60) : 0} 
-              className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 outline-none text-slate-900 dark:text-white p-1" 
-            />
+            <input type="number" readOnly value={stats ? Math.round((stats.totalPlayed % 1) * 60) : 0} className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 outline-none text-slate-900 dark:text-white p-1" />
           </div>
         </div>
         {syncError && <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1 leading-tight"><AlertCircle size={10} className="shrink-0"/> {syncError}</div>}
@@ -407,8 +437,9 @@ const Tracker = ({
              <div className="flex justify-between items-center mb-6">
                  <div className="text-sm font-bold uppercase tracking-wider text-slate-400">Momentum</div>
                  <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
-                    <button onClick={() => setGraphRange(7)} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${graphRange === 7 ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}>7D</button>
-                    <button onClick={() => setGraphRange(30)} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${graphRange === 30 ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}>30D</button>
+                    <button onClick={() => setGraphRange(7)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${graphRange === 7 ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}>THIS WEEK</button>
+                    <button onClick={() => setGraphRange(30)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${graphRange === 30 ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}>30D</button>
+                    <button onClick={() => setGraphRange(365)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${graphRange === 365 ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}>1Y</button>
                  </div>
              </div>
              
