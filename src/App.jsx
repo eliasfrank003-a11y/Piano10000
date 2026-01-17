@@ -6,7 +6,7 @@ import Practice from './components/Practice';
 import History from './components/History';
 import Leaderboard from './components/Leaderboard';
 import Settings from './components/Settings';
-import { Play, List, Crown, Clock, Music, Timer, RotateCw, ChevronDown } from 'lucide-react';
+import { Play, List, Crown, Clock, Music, Timer, RotateCw, ChevronDown, Plus, Divide } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
 
@@ -56,7 +56,6 @@ function App() {
   const [pieces, setPieces] = useState(() => {
     const saved = localStorage.getItem('pianoRepertoire_v9');
     let data = saved ? JSON.parse(saved) : INITIAL_REPERTOIRE;
-    // Data normalization from original code
     data = data.map(p => {
         if (p.type === 'divider') return p;
         let status = p.status;
@@ -71,6 +70,11 @@ function App() {
   const [tenKData, setTenKData] = useState(() => {
     const saved = localStorage.getItem('piano10k_v1');
     return saved ? JSON.parse(saved) : { hours: "", minutes: "" };
+  });
+
+  // NEW: Store for imported CSV data (timestamps and durations)
+  const [externalHistory, setExternalHistory] = useState(() => {
+    return JSON.parse(localStorage.getItem('pianoExternalHistory_v1') || "[]");
   });
 
   const [customMilestones, setCustomMilestones] = useState(() => JSON.parse(localStorage.getItem('pianoCustomMilestones_v1') || "[]"));
@@ -132,6 +136,7 @@ function App() {
           if (data.pianoCustomMilestones_v1) setCustomMilestones(data.pianoCustomMilestones_v1);
           if (data.pianoLegacyMeta_v1) setLegacyMeta(data.pianoLegacyMeta_v1);
           if (data.pianoIntervalMilestones_v1) setIntervalMilestones(data.pianoIntervalMilestones_v1);
+          if (data.pianoExternalHistory_v1) setExternalHistory(data.pianoExternalHistory_v1);
           setSyncStatus("synced");
         } else { setSyncStatus("synced"); }
       }).catch((err) => { console.error(err); setSyncStatus("error"); }).finally(() => { isCloudReady.current = true; });
@@ -157,6 +162,7 @@ function App() {
   useEffect(() => { saveData('pianoCustomMilestones_v1', customMilestones); }, [customMilestones]);
   useEffect(() => { saveData('pianoLegacyMeta_v1', legacyMeta); }, [legacyMeta]);
   useEffect(() => { saveData('pianoIntervalMilestones_v1', intervalMilestones); }, [intervalMilestones]);
+  useEffect(() => { saveData('pianoExternalHistory_v1', externalHistory); }, [externalHistory]);
   useEffect(() => { if (syncId) localStorage.setItem('pianoSyncId', syncId); }, [syncId]);
 
   // --- THEME ---
@@ -214,6 +220,7 @@ function App() {
     if (confirm("Are you sure? This will disconnect cloud sync and clear all local data.")) {
         setSyncId(""); localStorage.removeItem('pianoSyncId'); setSyncStatus("disconnected");
         setPieces(INITIAL_REPERTOIRE); setHistory([]); setTenKData({ hours: "", minutes: "" });
+        setExternalHistory([]);
     }
   };
 
@@ -282,7 +289,21 @@ function App() {
 
       {/* CONTENT */}
       <div className="flex-1 overflow-hidden flex flex-col relative">
-        {appMode === '10K' && <Tracker tenKData={tenKData} setTenKData={setTenKData} customMilestones={customMilestones} addCustomMilestone={(m) => setCustomMilestones([...customMilestones, m])} intervalMilestones={intervalMilestones} setIntervalMilestones={setIntervalMilestones} legacyMeta={legacyMeta} setLegacyMeta={setLegacyMeta} onIntervalAdded={(h) => addDivider(String(h), null)} />}
+        {appMode === '10K' && (
+          <Tracker 
+            tenKData={tenKData} 
+            setTenKData={setTenKData} 
+            customMilestones={customMilestones} 
+            addCustomMilestone={(m) => setCustomMilestones([...customMilestones, m])} 
+            intervalMilestones={intervalMilestones} 
+            setIntervalMilestones={setIntervalMilestones} 
+            legacyMeta={legacyMeta} 
+            setLegacyMeta={setLegacyMeta} 
+            onIntervalAdded={(h) => addDivider(String(h), null)}
+            externalHistory={externalHistory}
+            setExternalHistory={setExternalHistory}
+          />
+        )}
         {appMode === 'REPS' && <Repetitions repState={repState} setRepState={setRepState} />}
         {appMode === 'REPERTOIRE' && (
             <>
