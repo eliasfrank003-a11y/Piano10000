@@ -17,7 +17,7 @@ const LEGACY_MILESTONES = [
   { hours: 400, date: new Date("2024-11-13"), avg: "1h 24m", type: 'legacy' },
 ];
 
-// --- HELPERS ---
+// --- HELPERS (v54 Improved Logic) ---
 function formatDecimalToHMS(decimalHours) {
   const totalSeconds = Math.round(decimalHours * 3600);
   const h = Math.floor(totalSeconds / 3600);
@@ -40,6 +40,7 @@ function formatAvgTime(str) {
   match = str.match(/^(\d+):(\d+)$/);
   if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m`;
   
+  // v54: Enhanced Regex Support
   if (/^\d{5,6}$/.test(str)) {
      const s = parseInt(str.slice(-2), 10);
      const m = parseInt(str.slice(-4, -2), 10);
@@ -60,12 +61,13 @@ function formatYearsMonthsSincePlain(dateObj) {
   let months = now.getMonth() - dateObj.getMonth();
   if (now.getDate() < dateObj.getDate()) months -= 1;
   if (months < 0) { years -= 1; months += 12; }
+  // v54: Safety checks
   if (years < 0) years = 0;
   if (months < 0) months = 0;
   return { years, months, text: `${years} year ${months} month` };
 }
 
-// --- GOOGLE SYNC HELPERS (BULLETPROOF VERSION) ---
+// --- GOOGLE SYNC HELPERS (Bulletproof Version) ---
 async function fetchGoogleCalendarEvents(token) {
   try {
     // 1. Fetch ALL calendars (handling pagination just in case)
@@ -93,7 +95,7 @@ async function fetchGoogleCalendarEvents(token) {
     // 4. If still not found, THROW ERROR WITH LIST OF WHAT WE FOUND
     if (!calendar) {
         const foundNames = allCalendars.map(c => c.summary).join(", ");
-        throw new Error(`Calendar 'ATracker' not found. I found these calendars: ${foundNames}. Are you logged into the correct Google Account?`);
+        throw new Error(`Calendar 'ATracker' not found. I found these calendars: ${foundNames}.`);
     }
 
     // 5. Fetch Events from the found calendar
@@ -265,12 +267,16 @@ const Tracker = ({
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
       
-      // Force account selection to avoid auto-sign-in to wrong account
-      provider.setCustomParameters({ prompt: 'select_account' });
+      // *** THE FIX: Force Google to show the checkboxes again ***
+      // 'consent' forces the permissions screen. 
+      provider.setCustomParameters({ 
+        prompt: 'consent' 
+      });
 
       const result = await firebase.auth().signInWithPopup(provider);
       const token = result.credential.accessToken;
       const events = await fetchGoogleCalendarEvents(token);
+      
       const processedSessions = events.map(e => {
         if (!e.start?.dateTime || !e.end?.dateTime) return null;
         const start = new Date(e.start.dateTime);
@@ -278,13 +284,20 @@ const Tracker = ({
         const durationHours = (end - start) / (1000 * 60 * 60);
         return { id: start.getTime(), date: start, duration: durationHours };
       }).filter(Boolean);
+      
       setExternalHistory(processedSessions);
       alert(`Success! Synced ${processedSessions.length} sessions.`);
+      
     } catch (err) {
       // Clean error message for display
       const msg = err.message.replace("Firebase: ", "").replace(/\(.*\)/, "");
       setSyncError(msg);
-      alert("Sync Failed:\n" + msg);
+      // If it's our custom error, showing it in alert is helpful
+      if (msg.includes("I found these calendars")) {
+          alert("Sync Failed:\n" + msg + "\n\nTip: Make sure you check all boxes in the Google permissions screen.");
+      } else {
+          alert("Sync Failed:\n" + msg);
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -323,6 +336,7 @@ const Tracker = ({
           setIntervalMilestones(prev => ([...prev, { id: Date.now(), date: formState.date, hours: h, avg: formState.avg, description: formState.description || "" }]));
           if (onIntervalAdded) onIntervalAdded(String(h));
       } else if (modalType === 'CUSTOM') {
+          // v54: added dateCreated
           addCustomMilestone({ id: Date.now(), date: formState.date, hours: Number(formState.hours), title: formState.title, description: formState.description || "", dateCreated: Date.now() });
       }
       setIsModalOpen(false); 
@@ -360,11 +374,12 @@ const Tracker = ({
   return (
     <div className="flex-1 flex flex-col p-6 overflow-y-auto w-full animate-in fade-in zoom-in duration-300 scroller-fix pb-24">
       
-      {/* --- INPUT CARD (Restored Visuals + Sync) --- */}
+      {/* --- INPUT CARD --- */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700 z-20 relative">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
           <div className="flex gap-2">
+              {/* Sync Button */}
               <button onClick={handleGoogleSync} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors" title="Sync ATracker">
                 {isSyncing ? <RefreshCw size={18} className="animate-spin"/> : <Calendar size={18}/>}
               </button>
