@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Info, Edit2, Trash, Crown, Star, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
+import MomentumChart from './MomentumChart';
 
 // --- CONSTANTS ---
 const START_DATE = new Date("2024-02-01");
@@ -42,8 +43,20 @@ function formatAvgTime(str) {
   if (str.includes('h') && str.includes('m')) return str;
   let match = str.match(/^(\d+):(\d+):(\d+)$/);
   if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m ${parseInt(match[3])}s`;
+  match = str.match(/^(\d+):(\d+)$/);
+  if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m`;
   
-  // Clean up "0h" in string formats if needed, though usually used for input
+  if (/^\d{5,6}$/.test(str)) {
+     const s = parseInt(str.slice(-2), 10);
+     const m = parseInt(str.slice(-4, -2), 10);
+     const h = parseInt(str.slice(0, -4), 10);
+     return `${h}h ${m}m ${s}s`;
+  }
+  if (/^\d{3,4}$/.test(str)) {
+     const m = parseInt(str.slice(-2), 10);
+     const h = parseInt(str.slice(0, -2), 10);
+     return `${h}h ${m}m`;
+  }
   return str;
 }
 
@@ -131,7 +144,7 @@ const Tracker = ({
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
-  const [graphRange, setGraphRange] = useState(7); // 7, 30, or 365
+  const [graphRange, setGraphRange] = useState(7);
   
   // --- STATS LOGIC ---
   const stats = useMemo(() => {
@@ -187,119 +200,13 @@ const Tracker = ({
     };
   }, [externalHistory]);
 
-  // --- CHART LOGIC (REVISED) ---
-  const stockChartData = useMemo(() => {
-    if (!stats || !externalHistory) return null;
-    
-    const now = new Date();
-    // Normalize "today" to midnight for consistent comparisons
-    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    // Create map of daily play
-    const dailyPlayMap = {};
-    let firstDataDate = null;
-    
-    // Find the very first logged date in history to handle "starting today"
-    if (externalHistory.length > 0) {
-        // Sort first
-        const sorted = [...externalHistory].sort((a,b) => a.id - b.id);
-        const first = new Date(sorted[0].id);
-        firstDataDate = new Date(first.getFullYear(), first.getMonth(), first.getDate());
-    }
-
-    externalHistory.forEach(s => {
-        const d = new Date(s.id);
-        const key = d.toDateString();
-        dailyPlayMap[key] = (dailyPlayMap[key] || 0) + s.duration;
-    });
-
-    const points = [];
-    let currentCumulativeDelta = 0; 
-    
-    // Determine Start Date based on Range
-    let loopStartDate = new Date(todayMidnight);
-    
-    if (graphRange === 7) {
-        // "This Week" logic: Start on Monday
-        const day = loopStartDate.getDay();
-        const diff = loopStartDate.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-        loopStartDate.setDate(diff);
-    } else if (graphRange === 30) {
-        loopStartDate.setDate(todayMidnight.getDate() - 29);
-    } else if (graphRange === 365) {
-        loopStartDate.setDate(todayMidnight.getDate() - 364);
-    }
-
-    // Baseline is LIFETIME AVERAGE to show improvement
-    const baseAvg = stats.avgNumeric;
-
-    // Generate days from LoopStart to Today
-    const dateIterator = new Date(loopStartDate);
-    let xIndex = 0;
-
-    while (dateIterator <= todayMidnight) {
-        // "Smart Start": If we are in 7D mode, and the dateIterator is BEFORE the user's first ever log, 
-        // we skip plotting it (or plot as 0 delta) so they don't see a drop for days they hadn't started yet.
-        const isBeforeHistory = firstDataDate && dateIterator < firstDataDate;
-        
-        if (!isBeforeHistory) {
-            const played = dailyPlayMap[dateIterator.toDateString()] || 0;
-            const deltaSeconds = (played - baseAvg) * 3600;
-            currentCumulativeDelta += deltaSeconds;
-            
-            points.push({
-                x: xIndex,
-                y: currentCumulativeDelta,
-                date: dateIterator.toLocaleDateString('en-US', { weekday: 'narrow' }),
-                fullDate: dateIterator.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            });
-            xIndex++;
-        }
-        
-        // Next day
-        dateIterator.setDate(dateIterator.getDate() + 1);
-    }
-    
-    if (points.length === 0) return null;
-
-    // Dynamic Scale
-    const yValues = points.map(p => p.y);
-    const minY = Math.min(0, ...yValues);
-    const maxY = Math.max(0, ...yValues);
-    
-    const range = maxY - minY;
-    const padding = range === 0 ? 10 : range * 0.2; 
-    const effectiveMin = minY - padding;
-    const effectiveMax = maxY + padding;
-    const effectiveRange = effectiveMax - effectiveMin;
-
-    const width = 100;
-    const height = 100;
-    
-    // X Scale depends on how many points we actually have
-    const maxX = points.length > 1 ? points.length - 1 : 1;
-    
-    const getX = (idx) => (idx / maxX) * width;
-    const getY = (val) => height - ((val - effectiveMin) / effectiveRange) * height;
-
-    const pathD = points.map((p, i) => 
-        `${i===0 ? 'M' : 'L'} ${getX(i)} ${getY(p.y)}`
-    ).join(" ");
-    
-    const isUp = points[points.length-1].y >= 0;
-    const color = isUp ? '#22c55e' : '#ef4444'; 
-
-    return { points, pathD, isUp, color, zeroY: getY(0), maxY: effectiveMax, minY: effectiveMin };
-  }, [externalHistory, stats, graphRange]);
-
-
   const handleGoogleSync = async () => {
     setIsSyncing(true);
     setSyncError(null);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
-      // REMOVED: prompt: 'consent' -> behaves like a refresh now
+      // Removed prompt:'consent' to make re-sync smoother (optional: put it back if user gets stuck)
 
       const result = await firebase.auth().signInWithPopup(provider);
       const token = result.credential.accessToken;
@@ -314,8 +221,7 @@ const Tracker = ({
       }).filter(Boolean);
       
       setExternalHistory(processedSessions);
-      // Removed alert to make it smoother, or keep a small toast if you prefer
-      // alert(`Success! Synced ${processedSessions.length} sessions.`); 
+      // alert(`Success! Synced ${processedSessions.length} sessions.`); // Optional toast
       
     } catch (err) {
       let msg = err.message.replace("Firebase: ", "").replace(/\(.*\)/, "");
@@ -410,10 +316,12 @@ const Tracker = ({
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
           <div className="flex gap-2">
-              <button onClick={handleGoogleSync} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors" title="Sync ATracker">
+              {/* CLEAN SYNC BUTTON (No Background) */}
+              <button onClick={handleGoogleSync} className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors p-1" title="Sync ATracker">
                 {isSyncing ? <RefreshCw size={18} className="animate-spin"/> : <Calendar size={18}/>}
               </button>
-              <button onClick={openAdd} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors">
+              {/* CLEAN PLUS BUTTON (Matched Style) */}
+              <button onClick={openAdd} className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors p-1">
                 <Plus size={18} />
               </button>
           </div>
@@ -431,36 +339,13 @@ const Tracker = ({
         {syncError && <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1 leading-tight"><AlertCircle size={10} className="shrink-0"/> {syncError}</div>}
       </div>
 
-      {/* --- STOCK CHART --- */}
-      {stockChartData && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700">
-             <div className="flex justify-between items-center mb-6">
-                 <div className="text-sm font-bold uppercase tracking-wider text-slate-400">Momentum</div>
-                 <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
-                    <button onClick={() => setGraphRange(7)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${graphRange === 7 ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}>THIS WEEK</button>
-                    <button onClick={() => setGraphRange(30)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${graphRange === 30 ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}>30D</button>
-                    <button onClick={() => setGraphRange(365)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${graphRange === 365 ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}>1Y</button>
-                 </div>
-             </div>
-             
-             <div className="h-40 w-full relative flex">
-                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="overflow-visible flex-1">
-                   {/* Zero Line */}
-                   <line x1="0" y1={stockChartData.zeroY} x2="100" y2={stockChartData.zeroY} stroke="currentColor" strokeWidth="0.5" strokeDasharray="4" className="text-slate-300 dark:text-slate-600" />
-                   {/* Line Path */}
-                   <path d={stockChartData.pathD} fill="none" stroke={stockChartData.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-                   {/* Gradient Fill */}
-                   <path d={`${stockChartData.pathD} L 100 ${stockChartData.zeroY} L 0 ${stockChartData.zeroY} Z`} fill={stockChartData.color} fillOpacity="0.1" stroke="none" />
-                </svg>
-                {/* Y-AXIS LABELS */}
-                <div className="flex flex-col justify-between text-[8px] font-mono text-slate-400 text-right ml-2 py-1 h-full">
-                    <span>+{Math.round(stockChartData.maxY)}s</span>
-                    <span>0s</span>
-                    <span>{Math.round(stockChartData.minY)}s</span>
-                </div>
-             </div>
-          </div>
-      )}
+      {/* --- NEW MOMENTUM CHART (Imported) --- */}
+      <MomentumChart 
+        externalHistory={externalHistory} 
+        stats={stats} 
+        graphRange={graphRange} 
+        setGraphRange={setGraphRange} 
+      />
       
       {/* --- STATS & TIMELINE --- */}
       {stats ? (
