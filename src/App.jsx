@@ -274,7 +274,7 @@ function App() {
                 <button onClick={() => setView('LIST')} className={`p-3 rounded-full transition-colors ${view === 'LIST' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><List size={20} /></button>
                 <button onClick={() => setView('LEADERBOARD')} className={`p-3 rounded-full transition-colors ${view === 'LEADERBOARD' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Crown size={20} /></button>
                 <button onClick={() => setView('HISTORY')} className={`p-3 rounded-full transition-colors ${view === 'HISTORY' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Clock size={20} /></button>
-                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-400')}`}>v54</button>
+                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-400')}`}>v55</button>
              </div>
          )}
       </div>
@@ -347,7 +347,20 @@ function App() {
                       <h3 className={`text-sm font-bold mb-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Add Divider</h3>
                       <div className="space-y-4 pb-12">
                           <div><label className={`text-xs font-bold mb-1 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Label</label><input autoFocus value={dividerText} onChange={(e) => setDividerText(e.target.value)} className={`w-full p-3 border rounded-xl text-lg outline-none focus:border-indigo-500 ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300'}`} /></div>
-                          <div><label className={`text-xs font-bold mb-1 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Insert After</label><select value={dividerAfterId} onChange={e => setDividerAfterId(e.target.value)} className={`w-full p-3 border rounded-xl text-sm outline-none ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300'}`}><option value="">At the top</option>{pieces.filter(p => p.type !== 'divider').map((p, idx) => <option key={p.id} value={p.id}>{idx + 1}. {p.title}</option>)}</select></div>
+                          <div>
+                            <label className={`text-xs font-bold mb-1 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Insert After</label>
+                            <select value={dividerAfterId} onChange={e => setDividerAfterId(e.target.value)} className={`w-full p-3 border rounded-xl text-sm outline-none ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300'}`}>
+                                <option value="">At the top</option>
+                                {/* EDITED: Sorted Oldest to Newest, removed generated numbers */}
+                                {pieces
+                                  .filter(p => p.type !== 'divider')
+                                  .sort((a, b) => a.id - b.id) // Sort by ID ascending (Oldest first)
+                                  .map((p) => (
+                                    <option key={p.id} value={p.id}>{p.title}</option>
+                                  ))
+                                }
+                            </select>
+                          </div>
                           <div className="flex gap-2 pt-2"><button onClick={() => addDivider(dividerText, dividerAfterId)} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold">Add</button><button onClick={() => setIsAddingDivider(false)} className={`flex-1 py-3 rounded-xl font-semibold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>Cancel</button></div>
                       </div>
                   </div>
