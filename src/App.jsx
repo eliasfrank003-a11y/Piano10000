@@ -9,7 +9,7 @@ import Settings from './components/Settings';
 import { Play, List, Crown, Clock, Music, Timer, RotateCw, ChevronDown, Plus, Divide } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
-import 'firebase/compat/auth'; // <--- ADDED THIS TO FIX AUTH CRASH
+import 'firebase/compat/auth'; // Ensure Auth is imported
 
 // --- FIREBASE CONFIG ---
 const userFirebaseConfig = {
@@ -73,7 +73,7 @@ function App() {
     return saved ? JSON.parse(saved) : { hours: "", minutes: "" };
   });
 
-  // Store for synced calendar sessions
+  // NEW: Store for imported CSV data (timestamps and durations)
   const [externalHistory, setExternalHistory] = useState(() => {
     return JSON.parse(localStorage.getItem('pianoExternalHistory_v1') || "[]");
   });
@@ -92,6 +92,7 @@ function App() {
 
   const [currentPiece, setCurrentPiece] = useState(null);
   
+  // Modal states for App-level additions
   const [isAdding, setIsAdding] = useState(false);
   const [newPieceTitle, setNewPieceTitle] = useState("");
   const [newPieceDate, setNewPieceDate] = useState("");
@@ -102,6 +103,7 @@ function App() {
   const [isRedListMode, setIsRedListMode] = useState(false);
   const [sessionFilter, setSessionFilter] = useState(false);
 
+  // Sorting
   const sortedPieces = useMemo(() => {
       return [...pieces].filter(p => p.type !== 'divider').sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
   }, [pieces]);
@@ -153,6 +155,7 @@ function App() {
     }
   };
 
+  // --- PERSISTENCE ---
   useEffect(() => { saveData('pianoRepertoire_v9', pieces); }, [pieces]);
   useEffect(() => { saveData('piano10k_v1', tenKData); }, [tenKData]);
   useEffect(() => { saveData('pianoHistory_v1', history); }, [history]);
@@ -163,11 +166,13 @@ function App() {
   useEffect(() => { saveData('pianoExternalHistory_v1', externalHistory); }, [externalHistory]);
   useEffect(() => { if (syncId) localStorage.setItem('pianoSyncId', syncId); }, [syncId]);
 
+  // --- THEME ---
   useEffect(() => {
     if (isDark) { document.documentElement.classList.add('dark'); localStorage.setItem('pianoTheme', 'dark'); } 
     else { document.documentElement.classList.remove('dark'); localStorage.setItem('pianoTheme', 'light'); }
   }, [isDark]);
 
+  // --- ACTIONS ---
   const recordPlay = (piece) => {
     if (piece.type === 'divider') return;
     const now = Date.now();
@@ -220,6 +225,7 @@ function App() {
     }
   };
 
+  // --- ADD LOGIC ---
   const handleStartAdd = () => {
     const existingCount = pieces.filter(p => p.type !== 'divider').length;
     setNewPieceTitle(`${existingCount + 1}. `);
@@ -264,11 +270,12 @@ function App() {
          </button>
          {appMode === 'REPERTOIRE' && (
              <div className={`flex gap-2 p-1 rounded-full items-center ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                {/* BIGGER BUTTONS: p-3 and size={20} */}
                 <button onClick={() => setView('PRACTICE')} className={`p-3 rounded-full transition-colors ${view === 'PRACTICE' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Play size={20} /></button>
                 <button onClick={() => setView('LIST')} className={`p-3 rounded-full transition-colors ${view === 'LIST' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><List size={20} /></button>
                 <button onClick={() => setView('LEADERBOARD')} className={`p-3 rounded-full transition-colors ${view === 'LEADERBOARD' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Crown size={20} /></button>
                 <button onClick={() => setView('HISTORY')} className={`p-3 rounded-full transition-colors ${view === 'HISTORY' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Clock size={20} /></button>
-                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-400')}`}>v56</button>
+                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-400')}`}>v57</button>
              </div>
          )}
       </div>
