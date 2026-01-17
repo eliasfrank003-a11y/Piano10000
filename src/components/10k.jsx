@@ -97,8 +97,8 @@ const Tracker = ({
   const [syncError, setSyncError] = useState(null);
   const [graphRange, setGraphRange] = useState(7);
   
+  // --- STATS LOGIC ---
   const stats = useMemo(() => {
-    // Sync Logic: Base + Events
     const newEvents = externalHistory.filter(s => new Date(s.id) > BASE_LOG_DATE);
     const newHours = newEvents.reduce((acc, s) => acc + s.duration, 0);
     const totalPlayed = BASE_HOURS_LOGGED + newHours;
@@ -151,6 +151,7 @@ const Tracker = ({
     };
   }, [externalHistory]);
 
+  // --- CHART LOGIC (Dynamic Scaling) ---
   const stockChartData = useMemo(() => {
     if (externalHistory.length === 0 || !stats) return null;
     
@@ -161,12 +162,9 @@ const Tracker = ({
         dailyPlayMap[key] = (dailyPlayMap[key] || 0) + s.duration;
     });
 
-    // 1. Calculate state at START of window
-    // We loop backwards N days to find the starting cumulative state
     let totalAtStart = stats.totalPlayed;
     let daysAtStart = stats.daysPassed;
     
-    // Unwind state to N days ago
     for(let i=0; i<graphRange; i++) {
         const d = new Date(now);
         d.setDate(now.getDate() - i);
@@ -175,39 +173,37 @@ const Tracker = ({
         daysAtStart -= 1;
     }
     
-    // The "Baseline" average is the average at the START of the period
     const baseAvg = totalAtStart / daysAtStart;
     
-    // 2. Build the graph forward from start+1 to today
     const points = [];
-    let currentCumulativeDelta = 0; // Starts at 0 relative to base
+    let currentCumulativeDelta = 0; 
     
     for(let i=graphRange-1; i>=0; i--) {
         const d = new Date(now);
         d.setDate(now.getDate() - i);
         const played = dailyPlayMap[d.toDateString()] || 0;
-        
-        // Did we beat the baseline today?
-        // Delta = Played - BaseAvg
         const deltaSeconds = (played - baseAvg) * 3600;
         currentCumulativeDelta += deltaSeconds;
         
         points.push({
-            x: graphRange - 1 - i, // 0 to N-1
+            x: graphRange - 1 - i,
             y: currentCumulativeDelta,
             date: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
             fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         });
     }
     
-    // SVG Path Construction
-    const minVal = Math.min(0, ...points.map(p => p.y));
-    const maxVal = Math.max(0, ...points.map(p => p.y));
-    const range = Math.max(1, maxVal - minVal);
-    // Add some padding
-    const padding = range * 0.1;
-    const effectiveMin = minVal - padding;
-    const effectiveRange = range + (padding * 2);
+    // Dynamic Scale Calculation (GeoGebra Style)
+    const yValues = points.map(p => p.y);
+    const minY = Math.min(0, ...yValues); // Always include 0
+    const maxY = Math.max(0, ...yValues);
+    
+    // Add 20% padding so line doesn't hit edges
+    const range = maxY - minY;
+    const padding = range === 0 ? 10 : range * 0.2; 
+    const effectiveMin = minY - padding;
+    const effectiveMax = maxY + padding;
+    const effectiveRange = effectiveMax - effectiveMin;
 
     const width = 100;
     const height = 100;
@@ -219,11 +215,10 @@ const Tracker = ({
         `${i===0 ? 'M' : 'L'} ${getX(i)} ${getY(p.y)}`
     ).join(" ");
     
-    // Determine Color: Green if final > 0 (Up), Red if final < 0 (Down)
     const isUp = points[points.length-1].y >= 0;
-    const color = isUp ? '#22c55e' : '#ef4444'; // green-500 : red-500
+    const color = isUp ? '#22c55e' : '#ef4444'; 
 
-    return { points, pathD, isUp, color, zeroY: getY(0) };
+    return { points, pathD, isUp, color, zeroY: getY(0), maxY: effectiveMax, minY: effectiveMin };
   }, [externalHistory, stats, graphRange]);
 
 
@@ -247,10 +242,9 @@ const Tracker = ({
       alert(`Synced ${processedSessions.length} sessions!`);
     } catch (err) {
       if (err.code === 'auth/configuration-not-found') {
-          alert("Setup Required: Please enable 'Google' as a Sign-In Provider in your Firebase Console.");
+          alert("ACTION REQUIRED: Go to Firebase Console -> Auth -> Sign-in method -> Add Google -> Enable.");
       } else {
           setSyncError(err.message);
-          alert("Sync failed: " + err.message);
       }
     } finally {
       setIsSyncing(false);
@@ -308,15 +302,15 @@ const Tracker = ({
       setIsModalOpen(false); setEditingMilestone(null);
   };
   
-  // Forecast Calculation (Restored)
+  // FORECAST LOGIC (Restored & Functional)
   const getForecastData = () => {
     if (!stats) return null;
     const calculateEffort = (secondsToAdd) => {
       const totalSeconds = secondsToAdd * stats.daysPassed;
       if (totalSeconds < 60) return `${Math.round(totalSeconds)}s`;
       const mins = Math.floor(totalSeconds / 60);
-      const secs = Math.round(totalSeconds % 60);
-      return `${Math.floor(mins/60)}h ${mins%60}m`;
+      const hrs = Math.floor(mins/60);
+      return `${hrs}h ${mins%60}m`;
     };
     const diffSeconds = ((stats.totalPlayed / stats.daysPassed) - (stats.totalPlayed / (stats.daysPassed + 1))) * 3600;
     return { effort: [1, 3, 5, 10, 20].map(s => ({ seconds: s, cost: calculateEffort(s) })), drop: diffSeconds.toFixed(2) };
@@ -353,7 +347,7 @@ const Tracker = ({
         {syncError && <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertCircle size={10}/> {syncError}</div>}
       </div>
 
-      {/* --- NEW: STOCK CHART --- */}
+      {/* --- STOCK CHART --- */}
       {stockChartData && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700">
              <div className="flex justify-between items-center mb-6">
@@ -364,20 +358,20 @@ const Tracker = ({
                  </div>
              </div>
              
-             <div className="h-40 w-full relative">
-                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="overflow-visible">
+             <div className="h-40 w-full relative flex">
+                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="overflow-visible flex-1">
                    {/* Zero Line */}
                    <line x1="0" y1={stockChartData.zeroY} x2="100" y2={stockChartData.zeroY} stroke="currentColor" strokeWidth="0.5" strokeDasharray="4" className="text-slate-300 dark:text-slate-600" />
-                   {/* Continuous Path */}
+                   {/* Line Path */}
                    <path d={stockChartData.pathD} fill="none" stroke={stockChartData.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-                   {/* Gradient Fill (Optional, subtle) */}
+                   {/* Gradient Fill */}
                    <path d={`${stockChartData.pathD} L 100 ${stockChartData.zeroY} L 0 ${stockChartData.zeroY} Z`} fill={stockChartData.color} fillOpacity="0.1" stroke="none" />
                 </svg>
-                
-                {/* Overlay Tooltips for Start/End */}
-                <div className="absolute top-0 right-0 text-xs font-bold" style={{ color: stockChartData.color }}>
-                   {stockChartData.points[stockChartData.points.length-1].y > 0 ? '+' : ''}
-                   {Math.round(stockChartData.points[stockChartData.points.length-1].y)}s
+                {/* Y-AXIS LABELS (Dynamic) */}
+                <div className="flex flex-col justify-between text-[8px] font-mono text-slate-400 text-right ml-2 py-1 h-full">
+                    <span>+{Math.round(stockChartData.maxY)}s</span>
+                    <span>0s</span>
+                    <span>{Math.round(stockChartData.minY)}s</span>
                 </div>
              </div>
           </div>
@@ -394,6 +388,7 @@ const Tracker = ({
             <div className="flex justify-between mt-2 text-xs text-slate-400 font-mono items-center">
                 <div className="flex items-center gap-2">
                     <span>Avg: {stats.avgDisplay}/day</span>
+                    {/* FIXED EYE ICON: Now clickable */}
                     <button onClick={() => setIsForecastOpen(true)} className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 p-1"><Info size={16}/></button>
                 </div>
                 <span>Day {stats.daysPassed}</span>
@@ -435,7 +430,7 @@ const Tracker = ({
         </>
       ) : ( <div className="text-center text-slate-400 mt-10 p-6 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">Enter your total hours above to generate your timeline.</div> )}
       
-      {/* --- MODALS (Forecast & Add/Edit) --- */}
+      {/* --- FORECAST MODAL (Restored) --- */}
       {isForecastOpen && forecastData && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
            <div className="min-h-full flex items-center justify-center p-4">
@@ -451,6 +446,7 @@ const Tracker = ({
         </div>
       )}
       
+      {/* ... Add/Edit Modal (Same logic, hidden for brevity) ... */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
            <div className="min-h-full flex items-center justify-center p-4">
@@ -462,7 +458,6 @@ const Tracker = ({
                    <button onClick={() => setIsModalOpen(false)} className="w-full mt-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
                  </>
                )}
-               {/* Simplified Form View for Brevity (Same as V54) */}
                {modalStep === 'FORM' && (
                  <>
                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">{modalType === 'INTERVAL' ? '100h Milestone' : (modalType === 'EDIT_DESC' ? 'Edit' : 'Custom Milestone')}</h3>
