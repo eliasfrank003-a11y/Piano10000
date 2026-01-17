@@ -119,27 +119,32 @@ function calculate10kStats(totalHours, totalMinutes) {
   };
 }
 
-// --- CSV PARSER (Custom for ATracker format) ---
+// --- CSV PARSER (UPDATED) ---
 const parseCSV = (csvText) => {
     const lines = csvText.split('\n');
     const sessions = [];
-    const headers = lines[0].split(';'); // Detected delimiter ';'
     
-    // Find index of 'Start time' and 'Duration in hours'
-    // Usually indices are fixed but good to check
-    // Based on snippet: Start time is col 2, Duration in hours is col 5
-    
+    // Skip Header Row
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         if (!line.trim()) continue;
         const cols = line.split(';');
         if (cols.length < 6) continue;
 
-        // Extract Date: "17. Dec 2025 at 9:41:43 AM"
-        const dateStr = cols[2].replace(/"/g, '').trim(); 
-        // Simple parse trick: remove "at "
-        const cleanDateStr = dateStr.replace(" at ", " ");
-        const timestamp = Date.parse(cleanDateStr);
+        // Extract Date: "17. Dec 2025 at 9:41:43 AM"
+        let dateStr = cols[2].replace(/"/g, '').trim(); 
+        
+        // CLEANING STEP:
+        // 1. Replace "at" with space
+        // 2. Replace narrow no-break space (U+202F) and normal no-break space (U+00A0) with normal space
+        // 3. Remove dots (e.g. "Dec." -> "Dec") to help Date.parse
+        dateStr = dateStr
+            .replace(' at ', ' ')
+            .replace(/[\u202F\u00A0]/g, ' ') 
+            .replace(/\./g, '')
+            .trim();
+
+        const timestamp = Date.parse(dateStr);
 
         // Extract Duration: "0,6438917"
         const durStr = cols[5].replace(/"/g, '').replace(',', '.').trim();
