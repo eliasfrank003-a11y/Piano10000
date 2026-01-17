@@ -262,11 +262,12 @@ function App() {
          </button>
          {appMode === 'REPERTOIRE' && (
              <div className={`flex gap-2 p-1 rounded-full items-center ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                <button onClick={() => setView('PRACTICE')} className={`p-2 rounded-full transition-colors ${view === 'PRACTICE' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Play size={16} /></button>
-                <button onClick={() => setView('LIST')} className={`p-2 rounded-full transition-colors ${view === 'LIST' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><List size={16} /></button>
-                <button onClick={() => setView('LEADERBOARD')} className={`p-2 rounded-full transition-colors ${view === 'LEADERBOARD' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Crown size={16} /></button>
-                <button onClick={() => setView('HISTORY')} className={`p-2 rounded-full transition-colors ${view === 'HISTORY' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Clock size={16} /></button>
-                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-400')}`}>v52</button>
+                {/* BIGGER BUTTONS: p-3 and size={20} */}
+                <button onClick={() => setView('PRACTICE')} className={`p-3 rounded-full transition-colors ${view === 'PRACTICE' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Play size={20} /></button>
+                <button onClick={() => setView('LIST')} className={`p-3 rounded-full transition-colors ${view === 'LIST' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><List size={20} /></button>
+                <button onClick={() => setView('LEADERBOARD')} className={`p-3 rounded-full transition-colors ${view === 'LEADERBOARD' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Crown size={20} /></button>
+                <button onClick={() => setView('HISTORY')} className={`p-3 rounded-full transition-colors ${view === 'HISTORY' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Clock size={20} /></button>
+                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-400')}`}>v54</button>
              </div>
          )}
       </div>
