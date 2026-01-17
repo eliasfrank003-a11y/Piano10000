@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import Tracker from './components/Tracker';
+import Tracker from './components/10k'; 
 import Repertoire from './components/Repertoire';
 import Repetitions from './components/Repetitions';
 import Practice from './components/Practice';
 import History from './components/History';
 import Leaderboard from './components/Leaderboard';
 import Settings from './components/Settings';
-import { Play, List, Crown, Clock, Settings as SettingsIcon, Music, Timer, RotateCw, ChevronDown, Plus, Divide } from 'lucide-react';
+import { Play, List, Crown, Clock, Music, Timer, RotateCw, ChevronDown } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
 
@@ -20,10 +20,6 @@ const userFirebaseConfig = {
   appId: "1:1005611018408:web:c067db2e119cc9f3a5fa9d",
   measurementId: "G-63W95VNLK6"
 };
-
-// --- ICONS (Matching original names) ---
-const IconPlus = () => <Plus size={20} />;
-const IconDivide = () => <Divide size={20} />;
 
 function App() {
   // --- iOS Viewport Fix ---
@@ -237,7 +233,6 @@ function App() {
   };
 
   const addDivider = (text, afterPieceId) => {
-    // EDITED: Removed check for text.trim() to allow empty dividers
     let newId = Date.now();
     if (afterPieceId) {
        const sorted = [...pieces].sort((a,b) => a.id - b.id);
@@ -277,7 +272,7 @@ function App() {
       </div>
 
       {appMode === 'REPERTOIRE' && (
-        <div className={`py-1.5 px-4 flex justify-center items-center gap-4 text-xs font-mono shrink-0 z-0 ${isDark ? 'bg-slate-900/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+        <div className={`py-1.5 px-4 flex justify-center items-center gap-4 text-xs font-mono shrink-0 z-0 border-b ${isDark ? 'bg-slate-900/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
             <span>Today: <strong className={isDark ? 'text-slate-200' : 'text-slate-700'}>{dailyStats.count}</strong></span>
             <span className={isDark ? 'text-slate-600' : 'text-slate-300'}>|</span>
             <span>Total: <strong className={isDark ? 'text-slate-200' : 'text-slate-700'}>{pieces.filter(p=>p.type!=='divider').reduce((sum, p) => sum + (p.playCount || 0), 0)}</strong></span>
@@ -292,8 +287,6 @@ function App() {
             <>
                 {view === 'PRACTICE' && <Practice currentPiece={currentPiece} pickPiece={pickPiece} stopSession={() => { setCurrentPiece(null); setSessionFilter(false); }} redListCount={pieces.filter(p => p.status === 'red' && p.type !== 'divider').length} />}
                 {view === 'LIST' && (
-                    <div className="flex flex-col h-full">
-                       {/* EDITED: Passed 'onOpenAddPiece' and 'onOpenAddDivider' props */}
                        <Repertoire 
                           repertoire={pieces} 
                           setRepertoire={setPieces} 
@@ -302,8 +295,6 @@ function App() {
                           onOpenAddPiece={handleStartAdd} 
                           onOpenAddDivider={() => setIsAddingDivider(true)}
                        />
-                       {/* EDITED: REMOVED THE BOTTOM BUTTONS DIV HERE */}
-                    </div>
                 )}
                 {view === 'LEADERBOARD' && <Leaderboard sortedPieces={sortedPieces} />}
                 {view === 'HISTORY' && <History history={history} replayPieceFromHistory={replayPieceFromHistory} deleteHistoryEntry={deleteHistoryEntry} />}
