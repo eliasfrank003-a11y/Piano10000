@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Info, Edit2, Trash, Crown, Star, Calendar, RefreshCw } from 'lucide-react';
+import { Plus, Info, Edit2, Trash, Crown, Star, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 
@@ -50,7 +50,7 @@ function formatYearsMonthsSincePlain(dateObj) {
   return { years, months, text: `${years} year ${months} month` };
 }
 
-// --- GOOGLE SYNC LOGIC ---
+// --- GOOGLE SYNC ---
 async function fetchGoogleCalendarEvents(token) {
   try {
     const listResponse = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
@@ -58,7 +58,7 @@ async function fetchGoogleCalendarEvents(token) {
     });
     const listData = await listResponse.json();
     const calendar = listData.items?.find(c => c.summary.toLowerCase() === 'atracker');
-    if (!calendar) throw new Error("Calendar 'ATracker' not found.");
+    if (!calendar) throw new Error("Calendar 'ATracker' not found. Please ensure a Google Calendar with this exact name exists.");
 
     let allEvents = [];
     let pageToken = null;
@@ -94,10 +94,11 @@ const Tracker = ({
 }) => {
   
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(null);
   const [graphRange, setGraphRange] = useState(7);
   
   const stats = useMemo(() => {
-    // Merge Manual Base + Synced Events
+    // Sync Logic: Base + Events
     const newEvents = externalHistory.filter(s => new Date(s.id) > BASE_LOG_DATE);
     const newHours = newEvents.reduce((acc, s) => acc + s.duration, 0);
     const totalPlayed = BASE_HOURS_LOGGED + newHours;
@@ -111,7 +112,6 @@ const Tracker = ({
     const avgHoursPerDay = totalPlayed / daysPassed;
     const percentage = Math.min(100, (totalPlayed / 10000) * 100).toFixed(2);
     
-    // Projections
     const remainingHours = 10000 - totalPlayed;
     const daysRemaining = remainingHours / avgHoursPerDay;
     const finishDate = new Date();
@@ -151,9 +151,9 @@ const Tracker = ({
     };
   }, [externalHistory]);
 
-  const deltaGraphData = useMemo(() => {
+  const stockChartData = useMemo(() => {
     if (externalHistory.length === 0 || !stats) return null;
-    const dataPoints = [];
+    
     const now = new Date();
     const dailyPlayMap = {};
     externalHistory.forEach(s => {
@@ -161,35 +161,75 @@ const Tracker = ({
         dailyPlayMap[key] = (dailyPlayMap[key] || 0) + s.duration;
     });
 
-    let currentTotal = stats.totalPlayed;
-    let currentDays = stats.daysPassed;
-
-    for (let i = 0; i < graphRange; i++) {
+    // 1. Calculate state at START of window
+    // We loop backwards N days to find the starting cumulative state
+    let totalAtStart = stats.totalPlayed;
+    let daysAtStart = stats.daysPassed;
+    
+    // Unwind state to N days ago
+    for(let i=0; i<graphRange; i++) {
         const d = new Date(now);
         d.setDate(now.getDate() - i);
-        const dayKey = d.toDateString();
-        const playedToday = dailyPlayMap[dayKey] || 0;
-        const avgToday = currentTotal / currentDays;
-        
-        const prevTotal = currentTotal - playedToday;
-        const prevDays = currentDays - 1;
-        const avgYesterday = prevDays > 0 ? prevTotal / prevDays : avgToday;
-        const deltaSeconds = (avgToday - avgYesterday) * 3600;
-        
-        dataPoints.unshift({
-            day: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
-            fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            delta: deltaSeconds,
-            played: playedToday
-        });
-        currentTotal = prevTotal;
-        currentDays = prevDays;
+        const played = dailyPlayMap[d.toDateString()] || 0;
+        totalAtStart -= played;
+        daysAtStart -= 1;
     }
-    return dataPoints;
+    
+    // The "Baseline" average is the average at the START of the period
+    const baseAvg = totalAtStart / daysAtStart;
+    
+    // 2. Build the graph forward from start+1 to today
+    const points = [];
+    let currentCumulativeDelta = 0; // Starts at 0 relative to base
+    
+    for(let i=graphRange-1; i>=0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const played = dailyPlayMap[d.toDateString()] || 0;
+        
+        // Did we beat the baseline today?
+        // Delta = Played - BaseAvg
+        const deltaSeconds = (played - baseAvg) * 3600;
+        currentCumulativeDelta += deltaSeconds;
+        
+        points.push({
+            x: graphRange - 1 - i, // 0 to N-1
+            y: currentCumulativeDelta,
+            date: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
+            fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        });
+    }
+    
+    // SVG Path Construction
+    const minVal = Math.min(0, ...points.map(p => p.y));
+    const maxVal = Math.max(0, ...points.map(p => p.y));
+    const range = Math.max(1, maxVal - minVal);
+    // Add some padding
+    const padding = range * 0.1;
+    const effectiveMin = minVal - padding;
+    const effectiveRange = range + (padding * 2);
+
+    const width = 100;
+    const height = 100;
+    
+    const getX = (idx) => (idx / (graphRange - 1)) * width;
+    const getY = (val) => height - ((val - effectiveMin) / effectiveRange) * height;
+
+    const pathD = points.map((p, i) => 
+        `${i===0 ? 'M' : 'L'} ${getX(i)} ${getY(p.y)}`
+    ).join(" ");
+    
+    // Determine Color: Green if final > 0 (Up), Red if final < 0 (Down)
+    const isUp = points[points.length-1].y >= 0;
+    const color = isUp ? '#22c55e' : '#ef4444'; // green-500 : red-500
+
+    return { points, pathD, isUp, color, zeroY: getY(0) };
   }, [externalHistory, stats, graphRange]);
+
 
   const handleGoogleSync = async () => {
     setIsSyncing(true);
+    setSyncError(null);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.addScope('https://www.googleapis.com/auth/calendar.events.readonly');
@@ -206,7 +246,12 @@ const Tracker = ({
       setExternalHistory(processedSessions);
       alert(`Synced ${processedSessions.length} sessions!`);
     } catch (err) {
-      alert("Sync failed: " + err.message);
+      if (err.code === 'auth/configuration-not-found') {
+          alert("Setup Required: Please enable 'Google' as a Sign-In Provider in your Firebase Console.");
+      } else {
+          setSyncError(err.message);
+          alert("Sync failed: " + err.message);
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -235,12 +280,11 @@ const Tracker = ({
     return [...legacy, ...interval, ...custom].sort((a, b) => Number(b.hours) - Number(a.hours));
   }, [customMilestones, intervalMilestones, legacyMeta]);
 
-  // Modal handlers same as before...
+  // Modal handlers
   const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id);
   const openAdd = () => { setIsModalOpen(true); setModalStep('CHOOSE'); setModalType(null); setEditingMilestone(null); };
   const openEdit = (milestone) => { setEditingMilestone(milestone); setIsModalOpen(true); setModalStep('FORM'); setModalType('EDIT_DESC'); setFormState({ date: milestone.date ? new Date(milestone.date).toISOString().split('T')[0] : '', hours: milestone.hours ? String(milestone.hours) : '', avg: milestone.avg || '', title: milestone.title || '', description: milestone.description || '' }); };
   const saveNewMilestone = () => { 
-      // Logic for saving (Shortened for brevity, use same logic as v54)
       if (modalType === 'INTERVAL') {
           const h = Number(formState.hours);
           setIntervalMilestones(prev => ([...prev, { id: Date.now(), date: formState.date, hours: h, avg: formState.avg, description: formState.description || "" }]));
@@ -251,7 +295,6 @@ const Tracker = ({
       setIsModalOpen(false); 
   };
   const saveEditDescription = () => {
-      // Logic for editing (Shortened)
       const desc = formState.description || "";
       if (editingMilestone.type === 'legacy') setLegacyMeta(prev => ({ ...prev, [editingMilestone.id]: desc }));
       else if (editingMilestone.type === 'interval') { const rawId = String(editingMilestone.id).replace('interval-', ''); setIntervalMilestones(prev => prev.map(m => String(m.id) === rawId ? { ...m, description: desc } : m)); }
@@ -259,24 +302,37 @@ const Tracker = ({
       setIsModalOpen(false); setEditingMilestone(null);
   };
   const deleteEditingMilestone = () => {
-      // Logic for deleting (Shortened)
       if (editingMilestone.type === 'custom') { const rawId = String(editingMilestone.id).replace('custom-', ''); deleteCustomMilestone(Number(rawId)); }
       else if (editingMilestone.type === 'interval') { const rawId = String(editingMilestone.id).replace('interval-', ''); setIntervalMilestones(prev => prev.filter(m => String(m.id) !== rawId)); }
       else if (editingMilestone.type === 'legacy') setLegacyMeta(prev => { const n={...prev}; delete n[editingMilestone.id]; return n; });
       setIsModalOpen(false); setEditingMilestone(null);
   };
-
+  
+  // Forecast Calculation (Restored)
+  const getForecastData = () => {
+    if (!stats) return null;
+    const calculateEffort = (secondsToAdd) => {
+      const totalSeconds = secondsToAdd * stats.daysPassed;
+      if (totalSeconds < 60) return `${Math.round(totalSeconds)}s`;
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = Math.round(totalSeconds % 60);
+      return `${Math.floor(mins/60)}h ${mins%60}m`;
+    };
+    const diffSeconds = ((stats.totalPlayed / stats.daysPassed) - (stats.totalPlayed / (stats.daysPassed + 1))) * 3600;
+    return { effort: [1, 3, 5, 10, 20].map(s => ({ seconds: s, cost: calculateEffort(s) })), drop: diffSeconds.toFixed(2) };
+  };
+  const forecastData = useMemo(() => isForecastOpen ? getForecastData() : null, [isForecastOpen, stats]);
   const inputClass = "w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm outline-none dark:bg-slate-700 dark:text-white";
 
   return (
     <div className="flex-1 flex flex-col p-6 overflow-y-auto w-full animate-in fade-in zoom-in duration-300 scroller-fix pb-24">
       
-      {/* --- TOP: MANUAL INPUT & SYNC BUTTON --- */}
+      {/* --- INPUT CARD (Restored to OG Look + Sync Button) --- */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700 z-20 relative">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
           <div className="flex gap-2">
-              <button onClick={handleGoogleSync} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors" title="Sync ATracker Calendar">
+              <button onClick={handleGoogleSync} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors" title="Sync ATracker">
                 {isSyncing ? <RefreshCw size={18} className="animate-spin"/> : <Calendar size={18}/>}
               </button>
               <button onClick={openAdd} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors">
@@ -294,10 +350,11 @@ const Tracker = ({
             <input type="number" readOnly value={stats ? Math.round((stats.totalPlayed % 1) * 60) : 0} className="w-full text-3xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-600 outline-none text-slate-900 dark:text-white p-1" />
           </div>
         </div>
+        {syncError && <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertCircle size={10}/> {syncError}</div>}
       </div>
 
-      {/* --- STOCK MARKET DELTA GRAPH --- */}
-      {deltaGraphData && (
+      {/* --- NEW: STOCK CHART --- */}
+      {stockChartData && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700">
              <div className="flex justify-between items-center mb-6">
                  <div className="text-sm font-bold uppercase tracking-wider text-slate-400">Momentum</div>
@@ -306,30 +363,27 @@ const Tracker = ({
                     <button onClick={() => setGraphRange(30)} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${graphRange === 30 ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}>30D</button>
                  </div>
              </div>
-             <div className="h-40 w-full flex items-end gap-1 relative">
-                <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-200 dark:bg-slate-700 border-t border-dashed border-slate-300 dark:border-slate-600 z-0"></div>
-                {deltaGraphData.map((d, i) => {
-                    const val = d.delta;
-                    const isPos = val >= 0;
-                    const absVal = Math.abs(val);
-                    const height = Math.min(absVal * 3, 75);
-                    return (
-                        <div key={i} className="flex-1 flex flex-col justify-center items-center h-full relative group">
-                            <div className="absolute -top-8 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap pointer-events-none">
-                                {d.fullDate}: {val > 0 ? '+' : ''}{val.toFixed(1)}s
-                            </div>
-                            <div className="w-full flex flex-col justify-center items-center h-full">
-                                <div className={`w-1.5 sm:w-2 rounded-full transition-all duration-500 ${isPos ? 'bg-green-500' : 'bg-red-500'} ${absVal === 0 ? 'opacity-20 bg-slate-400 h-1' : ''}`} style={{ height: `${Math.max(4, height)}px`, transform: isPos ? `translateY(-${height/2}px)` : `translateY(${height/2}px)` }}></div>
-                            </div>
-                            {(graphRange === 7 || i % 5 === 0) && ( <div className="absolute bottom-0 text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase">{d.day}</div> )}
-                        </div>
-                    )
-                })}
+             
+             <div className="h-40 w-full relative">
+                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="overflow-visible">
+                   {/* Zero Line */}
+                   <line x1="0" y1={stockChartData.zeroY} x2="100" y2={stockChartData.zeroY} stroke="currentColor" strokeWidth="0.5" strokeDasharray="4" className="text-slate-300 dark:text-slate-600" />
+                   {/* Continuous Path */}
+                   <path d={stockChartData.pathD} fill="none" stroke={stockChartData.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                   {/* Gradient Fill (Optional, subtle) */}
+                   <path d={`${stockChartData.pathD} L 100 ${stockChartData.zeroY} L 0 ${stockChartData.zeroY} Z`} fill={stockChartData.color} fillOpacity="0.1" stroke="none" />
+                </svg>
+                
+                {/* Overlay Tooltips for Start/End */}
+                <div className="absolute top-0 right-0 text-xs font-bold" style={{ color: stockChartData.color }}>
+                   {stockChartData.points[stockChartData.points.length-1].y > 0 ? '+' : ''}
+                   {Math.round(stockChartData.points[stockChartData.points.length-1].y)}s
+                </div>
              </div>
           </div>
       )}
       
-      {/* --- RESTORED AESTHETICS (Stats & Milestones) --- */}
+      {/* --- STATS & TIMELINE (Restored) --- */}
       {stats ? (
         <>
           <div className="mb-4">
@@ -337,11 +391,18 @@ const Tracker = ({
             <div className="h-6 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner relative">
               <div className="h-full bg-green-500 transition-all duration-1000 ease-out relative" style={{ width: `${stats.percentage}%` }}><div className="absolute inset-0 bg-white/20"></div></div>
             </div>
-            <div className="flex justify-between mt-2 text-xs text-slate-400 font-mono items-center"><div className="flex items-center gap-2"><span>Avg: {stats.avgDisplay}/day</span><button onClick={() => setIsForecastOpen(true)} className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300"><Info size={16}/></button></div><span>Day {stats.daysPassed}</span></div>
+            <div className="flex justify-between mt-2 text-xs text-slate-400 font-mono items-center">
+                <div className="flex items-center gap-2">
+                    <span>Avg: {stats.avgDisplay}/day</span>
+                    <button onClick={() => setIsForecastOpen(true)} className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 p-1"><Info size={16}/></button>
+                </div>
+                <span>Day {stats.daysPassed}</span>
+            </div>
           </div>
-          {/* ... Milestones and Finish Date Card ... */}
+
           <div className="relative mt-6 pb-12">
             <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0"></div>
+            {/* Estimated Finish Card */}
             <div className="relative z-10 mb-8 pl-16">
               <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-50 dark:ring-slate-900"></div>
               <div className="border border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-3 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
@@ -349,14 +410,14 @@ const Tracker = ({
                 <div className="text-right flex flex-col items-end justify-center gap-0.5"><div className="text-xs font-bold text-slate-500 dark:text-slate-400">REMAINING {stats.remainingFormatted}</div><div className="text-xs font-bold text-slate-500 dark:text-slate-400">TOTAL {stats.totalJourneyFormatted}</div></div>
               </div>
             </div>
-            {/* Crown/Star/Current Stats Cards and Milestones Loop (Same as before) */}
+            {/* Next 1k Card */}
             <div className="relative z-10 mb-8 pl-16">
               <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-purple-400 ring-4 ring-purple-400/20 shadow-lg shadow-purple-400/50"></div>
               <div className="bg-gradient-to-r from-purple-50 to-white dark:from-slate-800 dark:to-slate-800 border border-purple-200 dark:border-purple-900/30 rounded-xl p-4 shadow-sm">
                 <div className="flex justify-between items-center"><div><div className="text-purple-600 dark:text-purple-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Crown size={12}/> Next 1k</div><div className="text-xl font-bold text-slate-900 dark:text-white">{stats.next1k} Hours</div></div><div className="text-right"><div className="text-2xl font-bold text-purple-500">{stats.daysTo1k}</div><div className="text-[10px] text-slate-400 uppercase font-bold">{stats.next1kDateStr}</div></div></div>
               </div>
             </div>
-            {/* ... Loop all Milestones ... */}
+            {/* Milestones Loop */}
             {allMilestones.map((milestone, idx) => {
               const isExpanded = expandedId === milestone.id;
               return (
@@ -368,24 +429,60 @@ const Tracker = ({
                 </div>
               );
             })}
-            {/* ... Journey Started ... */}
+            {/* Journey Started */}
             <div className="relative z-10 pl-16"><div className="absolute left-8 top-1/2 -translate-x-1/2 w-4 h-full bg-slate-50 dark:bg-slate-900 z-0"></div><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-900 dark:bg-white border-2 border-slate-50 dark:border-slate-900 z-10"></div><div className="flex justify-between items-center"><div><div className="text-sm font-bold text-slate-900 dark:text-white">Journey Started</div><div className="text-xs text-slate-400">Feb 1, 2024</div></div><div className="text-xs text-slate-400">{journeyAge.text}</div></div></div>
           </div>
         </>
       ) : ( <div className="text-center text-slate-400 mt-10 p-6 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">Enter your total hours above to generate your timeline.</div> )}
       
-      {/* ... Forecast and Add/Edit Modals (Same logic as before, omitted to save space but should be included) ... */}
+      {/* --- MODALS (Forecast & Add/Edit) --- */}
+      {isForecastOpen && forecastData && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
+           <div className="min-h-full flex items-center justify-center p-4">
+             <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
+               <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2"><Info size={16}/> Stats Forecast</h3>
+               <div className="space-y-4">
+                 <div><div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">To Increase Average</div><div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl overflow-hidden">{forecastData.effort.map((item, i) => (<div key={item.seconds} className={`flex justify-between items-center p-3 ${i !== 0 ? 'border-t border-slate-100 dark:border-slate-700' : ''}`}><span className="text-sm font-medium text-slate-600 dark:text-slate-300">+{item.seconds} sec</span><span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Play +{item.cost}</span></div>))}</div></div>
+                 <div><div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">If You Skip Today</div><div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl p-3 flex justify-between items-center"><span className="text-sm font-medium text-red-600 dark:text-red-400">Average Drops By</span><span className="text-sm font-bold text-red-600 dark:text-red-400">{forecastData.drop} sec</span></div></div>
+                 <button onClick={() => setIsForecastOpen(false)} className="w-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Close</button>
+               </div>
+             </div>
+           </div>
+        </div>
+      )}
+      
       {isModalOpen && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
-              <div className="min-h-full flex items-center justify-center p-4">
-                  <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
-                     {/* ... Modal Content Reuse from V55 ... */}
-                     <h3 className="text-sm font-bold mb-4">Edit/Add (Restored)</h3>
-                     {/* For brevity, assume the standard modal logic is here. User asked to keep aesthetics, so logic is same. */}
-                     <button onClick={() => setIsModalOpen(false)} className="bg-slate-100 p-3 rounded-xl w-full">Close</button>
-                  </div>
-              </div>
-          </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
+           <div className="min-h-full flex items-center justify-center p-4">
+             <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
+               {modalStep === 'CHOOSE' && (
+                 <>
+                   <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add Milestone</h3>
+                   <div className="space-y-2"><button onClick={() => { setModalType('INTERVAL'); setModalStep('FORM'); setFormState({ date: new Date().toISOString().split('T')[0], hours: String(nextIntervalHours), avg: '', title: '', description: '' }); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-left"><div className="text-sm font-bold text-slate-900 dark:text-white">100h Milestone</div></button><button onClick={() => { setModalType('CUSTOM'); setModalStep('FORM'); setFormState({ date: new Date().toISOString().split('T')[0], hours: '', avg: '', title: '', description: '' }); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-left"><div className="text-sm font-bold text-slate-900 dark:text-white">Custom Milestone</div></button></div>
+                   <button onClick={() => setIsModalOpen(false)} className="w-full mt-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
+                 </>
+               )}
+               {/* Simplified Form View for Brevity (Same as V54) */}
+               {modalStep === 'FORM' && (
+                 <>
+                   <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">{modalType === 'INTERVAL' ? '100h Milestone' : (modalType === 'EDIT_DESC' ? 'Edit' : 'Custom Milestone')}</h3>
+                   <div className="space-y-3">
+                     {modalType !== 'EDIT_DESC' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Date</label><input type="date" value={formState.date} onChange={e => setFormState({ ...formState, date: e.target.value })} className={inputClass} /></div>}
+                     {modalType === 'INTERVAL' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Hours</label><input type="number" value={formState.hours} onChange={e => setFormState({ ...formState, hours: e.target.value })} className={inputClass} /></div>}
+                     {modalType === 'INTERVAL' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Avg</label><input type="text" value={formState.avg} onChange={e => setFormState({ ...formState, avg: e.target.value })} className={inputClass} /></div>}
+                     {modalType === 'CUSTOM' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Name</label><input type="text" value={formState.title} onChange={e => setFormState({ ...formState, title: e.target.value })} className={inputClass} /></div>}
+                     <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Description</label><textarea value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} className={`${inputClass} h-24`} /></div>
+                     <div className="flex gap-2 pt-1">
+                       <button onClick={modalType === 'EDIT_DESC' ? saveEditDescription : saveNewMilestone} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
+                       {modalType === 'EDIT_DESC' && <button onClick={deleteEditingMilestone} className="px-3 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-xl"><Trash size={16}/></button>}
+                       <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
+                     </div>
+                   </div>
+                 </>
+               )}
+             </div>
+           </div>
+        </div>
       )}
     </div>
   );
