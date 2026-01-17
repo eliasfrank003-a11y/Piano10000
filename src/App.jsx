@@ -9,7 +9,7 @@ import Settings from './components/Settings';
 import { Play, List, Crown, Clock, Music, Timer, RotateCw, ChevronDown, Plus, Divide } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
-import 'firebase/compat/auth'; // Ensure Auth is imported
+import 'firebase/compat/auth'; // <--- ADDED THIS TO FIX AUTH CRASH
 
 // --- FIREBASE CONFIG ---
 const userFirebaseConfig = {
@@ -73,7 +73,7 @@ function App() {
     return saved ? JSON.parse(saved) : { hours: "", minutes: "" };
   });
 
-  // NEW: Store for imported CSV data (timestamps and durations)
+  // Store for synced calendar sessions
   const [externalHistory, setExternalHistory] = useState(() => {
     return JSON.parse(localStorage.getItem('pianoExternalHistory_v1') || "[]");
   });
@@ -92,7 +92,6 @@ function App() {
 
   const [currentPiece, setCurrentPiece] = useState(null);
   
-  // Modal states for App-level additions
   const [isAdding, setIsAdding] = useState(false);
   const [newPieceTitle, setNewPieceTitle] = useState("");
   const [newPieceDate, setNewPieceDate] = useState("");
@@ -103,7 +102,6 @@ function App() {
   const [isRedListMode, setIsRedListMode] = useState(false);
   const [sessionFilter, setSessionFilter] = useState(false);
 
-  // Sorting
   const sortedPieces = useMemo(() => {
       return [...pieces].filter(p => p.type !== 'divider').sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
   }, [pieces]);
@@ -155,7 +153,6 @@ function App() {
     }
   };
 
-  // --- PERSISTENCE ---
   useEffect(() => { saveData('pianoRepertoire_v9', pieces); }, [pieces]);
   useEffect(() => { saveData('piano10k_v1', tenKData); }, [tenKData]);
   useEffect(() => { saveData('pianoHistory_v1', history); }, [history]);
@@ -166,13 +163,11 @@ function App() {
   useEffect(() => { saveData('pianoExternalHistory_v1', externalHistory); }, [externalHistory]);
   useEffect(() => { if (syncId) localStorage.setItem('pianoSyncId', syncId); }, [syncId]);
 
-  // --- THEME ---
   useEffect(() => {
     if (isDark) { document.documentElement.classList.add('dark'); localStorage.setItem('pianoTheme', 'dark'); } 
     else { document.documentElement.classList.remove('dark'); localStorage.setItem('pianoTheme', 'light'); }
   }, [isDark]);
 
-  // --- ACTIONS ---
   const recordPlay = (piece) => {
     if (piece.type === 'divider') return;
     const now = Date.now();
@@ -225,7 +220,6 @@ function App() {
     }
   };
 
-  // --- ADD LOGIC ---
   const handleStartAdd = () => {
     const existingCount = pieces.filter(p => p.type !== 'divider').length;
     setNewPieceTitle(`${existingCount + 1}. `);
@@ -270,7 +264,6 @@ function App() {
          </button>
          {appMode === 'REPERTOIRE' && (
              <div className={`flex gap-2 p-1 rounded-full items-center ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                {/* BIGGER BUTTONS: p-3 and size={20} */}
                 <button onClick={() => setView('PRACTICE')} className={`p-3 rounded-full transition-colors ${view === 'PRACTICE' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Play size={20} /></button>
                 <button onClick={() => setView('LIST')} className={`p-3 rounded-full transition-colors ${view === 'LIST' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><List size={20} /></button>
                 <button onClick={() => setView('LEADERBOARD')} className={`p-3 rounded-full transition-colors ${view === 'LEADERBOARD' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Crown size={20} /></button>
@@ -352,10 +345,9 @@ function App() {
                             <label className={`text-xs font-bold mb-1 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Insert After</label>
                             <select value={dividerAfterId} onChange={e => setDividerAfterId(e.target.value)} className={`w-full p-3 border rounded-xl text-sm outline-none ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300'}`}>
                                 <option value="">At the top</option>
-                                {/* EDITED: Sorted Oldest to Newest, removed generated numbers */}
                                 {pieces
                                   .filter(p => p.type !== 'divider')
-                                  .sort((a, b) => a.id - b.id) // Sort by ID ascending (Oldest first)
+                                  .sort((a, b) => a.id - b.id) 
                                   .map((p) => (
                                     <option key={p.id} value={p.id}>{p.title}</option>
                                   ))
