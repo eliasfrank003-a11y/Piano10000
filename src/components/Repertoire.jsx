@@ -100,139 +100,153 @@ const Repertoire = ({ repertoire, setRepertoire, isRedListMode, toggleRedList, o
   const clearDate = () => setEditForm({ ...editForm, date: '' });
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      
-      {/* Header with New Plus Button */}
-      <div className="flex items-center justify-between mb-4 px-2">
-        <div className="text-sm font-bold uppercase tracking-wider text-slate-400">My Repertoire</div>
+    <div className="flex flex-col h-full w-full">
+      {/* SCROLLABLE LIST AREA */}
+      <div className="flex-1 overflow-y-auto p-4 animate-in slide-in-from-right duration-300 w-full no-scrollbar scroller-fix" style={{ paddingBottom: '0' }}>
         
-        {/* NEW CENTERED PLUS BUTTON */}
-        <button onClick={() => setIsAddMenuOpen(true)} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors">
-            <Plus size={18} />
-        </button>
+        {/* Header with Adjusted Plus Button Position */}
+        <div className="flex items-center justify-between mb-4 px-2">
+            <div className="flex items-center gap-2">
+                <div className="text-sm font-bold uppercase tracking-wider text-slate-400">My Repertoire</div>
+                {/* CLEAN PLUS BUTTON (No background, next to title) */}
+                <button onClick={() => setIsAddMenuOpen(true)} className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors p-1">
+                    <Plus size={20} />
+                </button>
+            </div>
+          
+            <button onClick={toggleRedList} className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border transition-all ${isRedListMode ? 'bg-red-500 text-white border-red-500' : 'bg-transparent text-slate-400 border-slate-300 dark:border-slate-600'}`}>
+                <IconDot status={isRedListMode ? 'red' : 'normal'} /> {isRedListMode ? 'Red List' : 'Show Red'}
+            </button>
+        </div>
 
-        <button onClick={toggleRedList} className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border transition-all ${isRedListMode ? 'bg-red-500 text-white border-red-500' : 'bg-transparent text-slate-400 border-slate-300 dark:border-slate-600'}`}>
-          <IconDot status={isRedListMode ? 'red' : 'normal'} /> {isRedListMode ? 'Red List' : 'Show Red'}
-        </button>
+        {/* ADD MENU POPUP (Triggered by the small plus button) */}
+        {isAddMenuOpen && (
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height, 100vh)' }}>
+            <div className="min-h-full flex items-center justify-center p-4">
+                <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add to Library</h3>
+                    <div className="space-y-3">
+                    <button onClick={() => { setIsAddMenuOpen(false); onOpenAddPiece(); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left">
+                        <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-full text-indigo-600 dark:text-indigo-400"><Music size={20} /></div>
+                        <div className="font-bold text-slate-700 dark:text-slate-200">New Piece</div>
+                    </button>
+                    <button onClick={() => { setIsAddMenuOpen(false); onOpenAddDivider(); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left">
+                        <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-full text-slate-500 dark:text-slate-400"><Divide size={20} /></div>
+                        <div className="font-bold text-slate-700 dark:text-slate-200">New Divider</div>
+                    </button>
+                    <button onClick={() => setIsAddMenuOpen(false)} className="w-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold mt-2">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+        )}
+
+        {/* Edit Modal Overlay */}
+        {editingId && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height, 100vh)' }}>
+             <div className="min-h-full flex items-center justify-center p-4">
+                <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
+                  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Edit Piece</h3>
+                  <div className="space-y-3">
+                    <input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-lg outline-none dark:bg-slate-700 dark:text-white" />
+                    <div className="flex gap-2">
+                      <input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="w-full p-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-xl text-sm outline-none dark:text-white" />
+                      <button onClick={clearDate} className="bg-slate-100 dark:bg-slate-700 text-slate-500 p-3 rounded-xl"><Trash size={16}/></button>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <button onClick={saveEdit} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
+                      <button onClick={() => setEditingId(null)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* List Items */}
+        <div className="space-y-3 pb-4">
+          {[...displayedPieces].map((piece) => {
+            const isSwiped = swipedId === piece.id;
+            
+            // --- DIVIDER RENDERING ---
+            if (piece.type === 'divider') {
+                return (
+                    <div key={piece.id} className="relative overflow-hidden isolate">
+                       {/* Background Delete Button */}
+                       <div className={`absolute inset-0 z-0 flex justify-end transition-all duration-200 ${isSwiped ? 'opacity-100' : 'opacity-0 invisible'}`}>
+                         <button onClick={() => deletePiece(piece.id)} className="bg-red-500 text-white font-bold w-24 flex items-center justify-center rounded-r-xl my-2">Delete</button>
+                       </div>
+                       
+                       {/* Foreground Content */}
+                       <div 
+                          className="relative z-10 swipe-item bg-slate-50 dark:bg-slate-900" 
+                          onTouchStart={handleTouchStart} 
+                          onTouchEnd={(e) => handleTouchEnd(e, piece.id)} 
+                          style={{ 
+                              backfaceVisibility: 'hidden', 
+                              willChange: 'transform', 
+                              transform: isSwiped ? 'translate3d(-6rem,0,0)' : 'translate3d(0,0,0)' 
+                          }}
+                       >
+                          {/* UPDATED: Handle empty text for continuous line */}
+                          {piece.text && piece.text.trim() !== "" ? (
+                              <div className="flex items-center justify-center gap-4 py-4 opacity-70">
+                                  <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
+                                  <span className="font-bold text-slate-400 dark:text-slate-500 text-xs tracking-widest uppercase">{piece.text}</span>
+                                  <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
+                              </div>
+                          ) : (
+                              <div className="flex items-center justify-center py-4 opacity-70">
+                                  <div className="h-px bg-slate-300 dark:bg-slate-600 w-full"></div>
+                              </div>
+                          )}
+                       </div>
+                    </div>
+                )
+            }
+
+            // --- PIECE RENDERING ---
+            const weeksAgo = weeksSince(piece.startDate);
+            return (
+              <div key={piece.id} className="relative rounded-xl overflow-hidden isolate bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transform-gpu" style={{ backgroundClip: 'padding-box' }}>
+                {/* Background Buttons */}
+                <div className={`absolute inset-0 z-0 flex justify-end bg-white dark:bg-slate-800 transition-all duration-200 ${isSwiped ? 'opacity-100' : 'opacity-0 invisible'}`}>
+                  <button onClick={() => startEdit(piece)} className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold w-20 flex items-center justify-center">Edit</button>
+                  <button onClick={() => deletePiece(piece.id)} className="bg-red-500 text-white font-bold w-24 flex items-center justify-center">Delete</button>
+                </div>
+
+                {/* Foreground Content */}
+                <div className="absolute inset-0 z-10 bg-white dark:bg-slate-800 shadow-sm p-4 flex items-center justify-between swipe-item" onTouchStart={handleTouchStart} onTouchEnd={(e) => handleTouchEnd(e, piece.id)} style={{ backfaceVisibility: 'hidden', willChange: 'transform', transform: isSwiped ? 'translate3d(-11rem,0,0)' : 'translate3d(0,0,0)' }}>
+                  <div className="flex-1 pr-4 pl-2">
+                    <h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3>
+                    {weeksAgo && (
+                      <div className="text-[10px] text-slate-400 mt-1 font-mono">
+                        Started: {formatDisplayDate(piece.startDate)} • {weeksAgo}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); cyclePieceStatus(piece.id); }} className="p-2 active:scale-90 transition-transform">
+                    <IconDot status={piece.status || (piece.isRed ? 'red' : 'normal')} />
+                  </button>
+                </div>
+                
+                {/* Spacer to give height to absolute element */}
+                <div className="h-[72px]"></div>
+              </div>
+            );
+          })}
+          {displayedPieces.length === 0 && <div className="text-center text-slate-400 mt-10 p-6">No pieces found.</div>}
+        </div>
       </div>
 
-      {/* NEW: ADD MENU POPUP */}
-      {isAddMenuOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height, 100vh)' }}>
-           <div className="min-h-full flex items-center justify-center p-4">
-              <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add to Library</h3>
-                <div className="space-y-3">
-                  <button onClick={() => { setIsAddMenuOpen(false); onOpenAddPiece(); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left">
-                     <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-full text-indigo-600 dark:text-indigo-400"><Music size={20} /></div>
-                     <div className="font-bold text-slate-700 dark:text-slate-200">New Piece</div>
-                  </button>
-                  <button onClick={() => { setIsAddMenuOpen(false); onOpenAddDivider(); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left">
-                     <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-full text-slate-500 dark:text-slate-400"><Divide size={20} /></div>
-                     <div className="font-bold text-slate-700 dark:text-slate-200">New Divider</div>
-                  </button>
-                  <button onClick={() => setIsAddMenuOpen(false)} className="w-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold mt-2">Cancel</button>
-                </div>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* Edit Modal Overlay */}
-      {editingId && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height, 100vh)' }}>
-           <div className="min-h-full flex items-center justify-center p-4">
-              <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Edit Piece</h3>
-                <div className="space-y-3">
-                  <input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl text-lg outline-none dark:bg-slate-700 dark:text-white" />
-                  <div className="flex gap-2">
-                    <input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="w-full p-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-xl text-sm outline-none dark:text-white" />
-                    <button onClick={clearDate} className="bg-slate-100 dark:bg-slate-700 text-slate-500 p-3 rounded-xl"><Trash size={16}/></button>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <button onClick={saveEdit} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
-                    <button onClick={() => setEditingId(null)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
-                  </div>
-                </div>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* List Items */}
-      <div className="space-y-3 pb-8">
-        {[...displayedPieces].map((piece) => {
-          const isSwiped = swipedId === piece.id;
-          
-          // --- DIVIDER RENDERING ---
-          if (piece.type === 'divider') {
-              return (
-                  <div key={piece.id} className="relative overflow-hidden isolate">
-                     {/* Background Delete Button */}
-                     <div className={`absolute inset-0 z-0 flex justify-end transition-all duration-200 ${isSwiped ? 'opacity-100' : 'opacity-0 invisible'}`}>
-                       <button onClick={() => deletePiece(piece.id)} className="bg-red-500 text-white font-bold w-24 flex items-center justify-center rounded-r-xl my-2">Delete</button>
-                     </div>
-                     
-                     {/* Foreground Content */}
-                     <div 
-                        className="relative z-10 swipe-item bg-slate-50 dark:bg-slate-900" 
-                        onTouchStart={handleTouchStart} 
-                        onTouchEnd={(e) => handleTouchEnd(e, piece.id)} 
-                        style={{ 
-                            backfaceVisibility: 'hidden', 
-                            willChange: 'transform', 
-                            transform: isSwiped ? 'translate3d(-6rem,0,0)' : 'translate3d(0,0,0)' 
-                        }}
-                     >
-                        {/* UPDATED: Handle empty text for continuous line */}
-                        {piece.text && piece.text.trim() !== "" ? (
-                            <div className="flex items-center justify-center gap-4 py-4 opacity-70">
-                                <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
-                                <span className="font-bold text-slate-400 dark:text-slate-500 text-xs tracking-widest uppercase">{piece.text}</span>
-                                <div className="h-px bg-slate-300 dark:bg-slate-600 flex-1"></div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center py-4 opacity-70">
-                                <div className="h-px bg-slate-300 dark:bg-slate-600 w-full"></div>
-                            </div>
-                        )}
-                     </div>
-                  </div>
-              )
-          }
-
-          // --- PIECE RENDERING ---
-          const weeksAgo = weeksSince(piece.startDate);
-          return (
-            <div key={piece.id} className="relative rounded-xl overflow-hidden isolate bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transform-gpu" style={{ backgroundClip: 'padding-box' }}>
-              {/* Background Buttons */}
-              <div className={`absolute inset-0 z-0 flex justify-end bg-white dark:bg-slate-800 transition-all duration-200 ${isSwiped ? 'opacity-100' : 'opacity-0 invisible'}`}>
-                <button onClick={() => startEdit(piece)} className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold w-20 flex items-center justify-center">Edit</button>
-                <button onClick={() => deletePiece(piece.id)} className="bg-red-500 text-white font-bold w-24 flex items-center justify-center">Delete</button>
-              </div>
-
-              {/* Foreground Content */}
-              <div className="absolute inset-0 z-10 bg-white dark:bg-slate-800 shadow-sm p-4 flex items-center justify-between swipe-item" onTouchStart={handleTouchStart} onTouchEnd={(e) => handleTouchEnd(e, piece.id)} style={{ backfaceVisibility: 'hidden', willChange: 'transform', transform: isSwiped ? 'translate3d(-11rem,0,0)' : 'translate3d(0,0,0)' }}>
-                <div className="flex-1 pr-4 pl-2">
-                  <h3 className="font-medium text-slate-900 dark:text-white">{piece.title}</h3>
-                  {weeksAgo && (
-                    <div className="text-[10px] text-slate-400 mt-1 font-mono">
-                      Started: {formatDisplayDate(piece.startDate)} • {weeksAgo}
-                    </div>
-                  )}
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); cyclePieceStatus(piece.id); }} className="p-2 active:scale-90 transition-transform">
-                  <IconDot status={piece.status || (piece.isRed ? 'red' : 'normal')} />
-                </button>
-              </div>
-              
-              {/* Spacer to give height to absolute element */}
-              <div className="h-[72px]"></div>
-            </div>
-          );
-        })}
-        {displayedPieces.length === 0 && <div className="text-center text-slate-400 mt-10 p-6">No pieces found.</div>}
+      {/* FIXED BOTTOM BUTTONS - EXACTLY AS OG APP */}
+      <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 z-10 w-full flex flex-col items-center gap-3" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <button onClick={onOpenAddPiece} className="w-full flex items-center justify-center gap-2 p-4 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 font-bold transition-colors border border-slate-200 dark:border-slate-600 rounded-xl">
+            <Plus size={20} /> Add New Piece
+          </button>
+          <button onClick={onOpenAddDivider} className="text-xs font-bold text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors flex items-center gap-1">
+             <Divide size={18} /> Add Divider
+          </button>
       </div>
     </div>
   );
