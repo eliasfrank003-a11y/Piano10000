@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Info, Edit2, Trash, Crown, Star } from 'lucide-react';
+import { Plus, Info, Edit2, Trash, Crown, Star, Upload, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 // --- CONSTANTS & HELPERS (Exact copy from v51) ---
 const START_DATE = new Date("2024-02-01");
@@ -102,6 +102,7 @@ function calculate10kStats(totalHours, totalMinutes) {
   return {
     daysPassed,
     avgDisplay: formatDecimalToHMS(avgHoursPerDay),
+    avgNumeric: avgHoursPerDay,
     percentage,
     finishDate: finishDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
     yearsFormatted,
@@ -118,6 +119,39 @@ function calculate10kStats(totalHours, totalMinutes) {
   };
 }
 
+// --- CSV PARSER (Custom for ATracker format) ---
+const parseCSV = (csvText) => {
+    const lines = csvText.split('\n');
+    const sessions = [];
+    const headers = lines[0].split(';'); // Detected delimiter ';'
+    
+    // Find index of 'Start time' and 'Duration in hours'
+    // Usually indices are fixed but good to check
+    // Based on snippet: Start time is col 2, Duration in hours is col 5
+    
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const cols = line.split(';');
+        if (cols.length < 6) continue;
+
+        // Extract Date: "17. Dec 2025 at 9:41:43 AM"
+        const dateStr = cols[2].replace(/"/g, '').trim(); 
+        // Simple parse trick: remove "at "
+        const cleanDateStr = dateStr.replace(" at ", " ");
+        const timestamp = Date.parse(cleanDateStr);
+
+        // Extract Duration: "0,6438917"
+        const durStr = cols[5].replace(/"/g, '').replace(',', '.').trim();
+        const duration = parseFloat(durStr);
+
+        if (!isNaN(timestamp) && !isNaN(duration)) {
+            sessions.push({ id: timestamp, duration });
+        }
+    }
+    return sessions;
+};
+
 const Tracker = ({
   tenKData,
   setTenKData,
@@ -129,7 +163,9 @@ const Tracker = ({
   setIntervalMilestones,
   legacyMeta = {},
   setLegacyMeta,
-  onIntervalAdded
+  onIntervalAdded,
+  externalHistory = [],
+  setExternalHistory
 }) => {
   const stats = calculate10kStats(tenKData.hours, tenKData.minutes);
 
@@ -189,6 +225,85 @@ const Tracker = ({
 
     return [...legacy, ...interval, ...custom].sort((a, b) => Number(b.hours) - Number(a.hours));
   }, [customMilestones, intervalMilestones, legacyMeta]);
+
+  // --- DELTA GRAPH CALCULATION ---
+  const deltaData = useMemo(() => {
+      if (!stats || externalHistory.length === 0) return null;
+      
+      // 1. Group external history by Day
+      const dailyMap = {};
+      externalHistory.forEach(session => {
+          const d = new Date(session.id);
+          const key = d.toDateString(); // "Fri Jan 17 2026"
+          dailyMap[key] = (dailyMap[key] || 0) + session.duration;
+      });
+
+      // 2. Generate last 7 days from today
+      const today = new Date();
+      const chartData = [];
+      // Current Total Hours (from manual input)
+      let currentTotal = stats.totalPlayed;
+      let currentDays = stats.daysPassed;
+      
+      // We go backwards from Today to Today-6
+      for (let i = 0; i < 7; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          const key = d.toDateString();
+          
+          const hoursPlayedThatDay = dailyMap[key] || 0;
+          
+          // Current Average
+          const avgToday = currentTotal / currentDays;
+          
+          // Previous State (Yesterday)
+          const prevTotal = currentTotal - hoursPlayedThatDay;
+          const prevDays = currentDays - 1;
+          const avgYesterday = prevDays > 0 ? prevTotal / prevDays : avgToday;
+          
+          // Delta (in Seconds)
+          // + Delta means Average INCREASED (Good)
+          // - Delta means Average DECREASED
+          const deltaHours = avgToday - avgYesterday;
+          const deltaSeconds = deltaHours * 3600;
+
+          chartData.unshift({
+              day: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
+              delta: deltaSeconds,
+              val: Math.round(deltaSeconds * 10) / 10
+          });
+
+          // Step back for next iteration
+          currentTotal = prevTotal;
+          currentDays = prevDays;
+      }
+      return chartData;
+  }, [stats, externalHistory]);
+
+
+  // --- CSV UPLOAD HANDLER ---
+  const handleFileUpload = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+          const text = evt.target.result;
+          const sessions = parseCSV(text);
+          if (sessions.length > 0) {
+              // Merge with existing (deduplicate by ID/timestamp)
+              setExternalHistory(prev => {
+                  const existingIds = new Set(prev.map(s => s.id));
+                  const newSessions = sessions.filter(s => !existingIds.has(s.id));
+                  const updated = [...prev, ...newSessions].sort((a,b) => b.id - a.id);
+                  alert(`Imported ${newSessions.length} new sessions!`);
+                  return updated;
+              });
+          } else {
+              alert("No valid sessions found. Check CSV format.");
+          }
+      };
+      reader.readAsText(file);
+  };
 
   const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id);
 
@@ -320,13 +435,20 @@ const Tracker = ({
 
   return (
     <div className="flex-1 flex flex-col p-6 overflow-y-auto w-full animate-in fade-in zoom-in duration-300 scroller-fix pb-24">
+      
+      {/* --- TOP: MANUAL INPUT & IMPORT BUTTON --- */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700 z-20 relative">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
-          {/* EDITED: Simplified Plus button */}
-          <button onClick={openAdd} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors">
-            <Plus size={18} />
-          </button>
+          <div className="flex gap-2">
+              <label className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+                <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
+                <Upload size={18} />
+              </label>
+              <button onClick={openAdd} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors">
+                <Plus size={18} />
+              </button>
+          </div>
         </div>
 
         <div className="flex gap-4 items-center">
@@ -353,7 +475,47 @@ const Tracker = ({
           </div>
         </div>
       </div>
+      
+      {/* --- NEW: DELTA GRAPH --- */}
+      {deltaData && deltaData.length > 0 && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700">
+             <div className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex justify-between">
+                 <span>Average Trend (7 Days)</span>
+             </div>
+             <div className="flex items-end justify-between h-32 gap-2 relative">
+                {/* Zero Line */}
+                <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-200 dark:bg-slate-700 z-0"></div>
+                
+                {deltaData.map((d, i) => {
+                    const height = Math.min(Math.abs(d.delta) * 5, 60); // Scale factor
+                    const isPositive = d.delta >= 0;
+                    return (
+                        <div key={i} className="flex-1 flex flex-col items-center z-10">
+                            {/* Value Label */}
+                            <div className={`text-[10px] font-bold mb-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                                {d.val > 0 ? '+' : ''}{d.val}s
+                            </div>
+                            
+                            {/* Bar Container centered on midline */}
+                            <div className="h-full w-full flex flex-col justify-center items-center relative">
+                                <div 
+                                    className={`w-2/3 rounded-sm ${isPositive ? 'bg-green-400' : 'bg-red-400'}`}
+                                    style={{ 
+                                        height: `${Math.max(2, height)}px`, 
+                                        transform: isPositive ? `translateY(-${height/2}px)` : `translateY(${height/2}px)` 
+                                    }}
+                                ></div>
+                            </div>
+                            
+                            <div className="text-[10px] text-slate-400 mt-2">{d.day}</div>
+                        </div>
+                    )
+                })}
+             </div>
+          </div>
+      )}
 
+      {/* --- EXISTING STATS & MODALS --- */}
       {isForecastOpen && forecastData && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
            <div className="min-h-full flex items-center justify-center p-4">
