@@ -17,12 +17,12 @@ const LEGACY_MILESTONES = [
   { hours: 400, date: new Date("2024-11-13"), avg: "1h 24m", type: 'legacy' },
 ];
 
-// --- HELPERS (Updated with v54 improvements) ---
+// --- HELPERS ---
 function formatDecimalToHMS(decimalHours) {
   const totalSeconds = Math.round(decimalHours * 3600);
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = Math.round(totalSeconds % 60); // v54: Added Math.round
+  const s = Math.round(totalSeconds % 60);
   return `${h}h ${m}m ${s}s`;
 }
 
@@ -40,7 +40,6 @@ function formatAvgTime(str) {
   match = str.match(/^(\d+):(\d+)$/);
   if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m`;
   
-  // v54: Enhanced Regex Support
   if (/^\d{5,6}$/.test(str)) {
      const s = parseInt(str.slice(-2), 10);
      const m = parseInt(str.slice(-4, -2), 10);
@@ -61,33 +60,54 @@ function formatYearsMonthsSincePlain(dateObj) {
   let months = now.getMonth() - dateObj.getMonth();
   if (now.getDate() < dateObj.getDate()) months -= 1;
   if (months < 0) { years -= 1; months += 12; }
-  // v54: Safety checks for negative values
   if (years < 0) years = 0;
   if (months < 0) months = 0;
   return { years, months, text: `${years} year ${months} month` };
 }
 
-// --- GOOGLE SYNC HELPERS ---
+// --- GOOGLE SYNC HELPERS (BULLETPROOF VERSION) ---
 async function fetchGoogleCalendarEvents(token) {
   try {
-    const listResponse = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const listData = await listResponse.json();
-    // Safety check for calendar name
-    const calendar = listData.items?.find(c => c.summary.trim().toLowerCase() === 'atracker');
-    if (!calendar) throw new Error("Calendar 'ATracker' not found. Please ensure a Google Calendar with this exact name exists.");
+    // 1. Fetch ALL calendars (handling pagination just in case)
+    let allCalendars = [];
+    let calPageToken = null;
+    do {
+       let calUrl = 'https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader';
+       if (calPageToken) calUrl += `&pageToken=${calPageToken}`;
+       
+       const response = await fetch(calUrl, { headers: { Authorization: `Bearer ${token}` } });
+       const data = await response.json();
+       if (data.items) allCalendars = allCalendars.concat(data.items);
+       calPageToken = data.nextPageToken;
+    } while (calPageToken);
 
+    // 2. Try to find 'ATracker' with robust matching
+    const targetName = 'atracker';
+    let calendar = allCalendars.find(c => c.summary && c.summary.trim().toLowerCase() === targetName);
+
+    // 3. Fallback: Try "includes" (loose match) if exact match fails
+    if (!calendar) {
+        calendar = allCalendars.find(c => c.summary && c.summary.toLowerCase().includes(targetName));
+    }
+
+    // 4. If still not found, THROW ERROR WITH LIST OF WHAT WE FOUND
+    if (!calendar) {
+        const foundNames = allCalendars.map(c => c.summary).join(", ");
+        throw new Error(`Calendar 'ATracker' not found. I found these calendars: ${foundNames}. Are you logged into the correct Google Account?`);
+    }
+
+    // 5. Fetch Events from the found calendar
     let allEvents = [];
-    let pageToken = null;
+    let eventPageToken = null;
     do {
       let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events?singleEvents=true&orderBy=startTime&timeMin=${START_DATE.toISOString()}&maxResults=2500`;
-      if (pageToken) url += `&pageToken=${pageToken}`;
+      if (eventPageToken) url += `&pageToken=${eventPageToken}`;
       const eventsResponse = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const eventsData = await eventsResponse.json();
       if (eventsData.items) allEvents = allEvents.concat(eventsData.items);
-      pageToken = eventsData.nextPageToken;
-    } while (pageToken);
+      eventPageToken = eventsData.nextPageToken;
+    } while (eventPageToken);
+    
     return allEvents;
   } catch (error) {
     console.error("Google Sync Error:", error);
@@ -115,9 +135,8 @@ const Tracker = ({
   const [syncError, setSyncError] = useState(null);
   const [graphRange, setGraphRange] = useState(7);
   
-  // --- STATS LOGIC (Uses External History for Truth) ---
+  // --- STATS LOGIC ---
   const stats = useMemo(() => {
-    // If we have sync data, use it. Otherwise fallback to null (or could use manual inputs)
     const newEvents = externalHistory.filter(s => new Date(s.id) > BASE_LOG_DATE);
     const newHours = newEvents.reduce((acc, s) => acc + s.duration, 0);
     const totalPlayed = BASE_HOURS_LOGGED + newHours;
@@ -170,7 +189,7 @@ const Tracker = ({
     };
   }, [externalHistory]);
 
-  // --- CHART LOGIC (Restored Visual) ---
+  // --- CHART LOGIC ---
   const stockChartData = useMemo(() => {
     if (externalHistory.length === 0 || !stats) return null;
     
@@ -212,7 +231,6 @@ const Tracker = ({
         });
     }
     
-    // Dynamic Scale Calculation
     const yValues = points.map(p => p.y);
     const minY = Math.min(0, ...yValues);
     const maxY = Math.max(0, ...yValues);
@@ -246,6 +264,10 @@ const Tracker = ({
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+      
+      // Force account selection to avoid auto-sign-in to wrong account
+      provider.setCustomParameters({ prompt: 'select_account' });
+
       const result = await firebase.auth().signInWithPopup(provider);
       const token = result.credential.accessToken;
       const events = await fetchGoogleCalendarEvents(token);
@@ -257,13 +279,12 @@ const Tracker = ({
         return { id: start.getTime(), date: start, duration: durationHours };
       }).filter(Boolean);
       setExternalHistory(processedSessions);
-      alert(`Synced ${processedSessions.length} sessions!`);
+      alert(`Success! Synced ${processedSessions.length} sessions.`);
     } catch (err) {
-      if (err.code === 'auth/configuration-not-found') {
-          alert("ACTION REQUIRED: Go to Firebase Console -> Auth -> Sign-in method -> Add Google -> Enable.");
-      } else {
-          setSyncError(err.message);
-      }
+      // Clean error message for display
+      const msg = err.message.replace("Firebase: ", "").replace(/\(.*\)/, "");
+      setSyncError(msg);
+      alert("Sync Failed:\n" + msg);
     } finally {
       setIsSyncing(false);
     }
@@ -302,7 +323,6 @@ const Tracker = ({
           setIntervalMilestones(prev => ([...prev, { id: Date.now(), date: formState.date, hours: h, avg: formState.avg, description: formState.description || "" }]));
           if (onIntervalAdded) onIntervalAdded(String(h));
       } else if (modalType === 'CUSTOM') {
-          // v54: added dateCreated
           addCustomMilestone({ id: Date.now(), date: formState.date, hours: Number(formState.hours), title: formState.title, description: formState.description || "", dateCreated: Date.now() });
       }
       setIsModalOpen(false); 
@@ -321,7 +341,7 @@ const Tracker = ({
       setIsModalOpen(false); setEditingMilestone(null);
   };
   
-  // FORECAST LOGIC (Restored & Functional)
+  // FORECAST LOGIC
   const getForecastData = () => {
     if (!stats) return null;
     const calculateEffort = (secondsToAdd) => {
@@ -340,7 +360,7 @@ const Tracker = ({
   return (
     <div className="flex-1 flex flex-col p-6 overflow-y-auto w-full animate-in fade-in zoom-in duration-300 scroller-fix pb-24">
       
-      {/* --- INPUT CARD (Visuals: Restored Sync Button) --- */}
+      {/* --- INPUT CARD (Restored Visuals + Sync) --- */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700 z-20 relative">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
@@ -373,10 +393,10 @@ const Tracker = ({
             />
           </div>
         </div>
-        {syncError && <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertCircle size={10}/> {syncError}</div>}
+        {syncError && <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1 leading-tight"><AlertCircle size={10} className="shrink-0"/> {syncError}</div>}
       </div>
 
-      {/* --- STOCK CHART (Visuals: Restored) --- */}
+      {/* --- STOCK CHART --- */}
       {stockChartData && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm mb-6 border border-slate-100 dark:border-slate-700">
              <div className="flex justify-between items-center mb-6">
@@ -396,7 +416,7 @@ const Tracker = ({
                    {/* Gradient Fill */}
                    <path d={`${stockChartData.pathD} L 100 ${stockChartData.zeroY} L 0 ${stockChartData.zeroY} Z`} fill={stockChartData.color} fillOpacity="0.1" stroke="none" />
                 </svg>
-                {/* Y-AXIS LABELS (Dynamic) */}
+                {/* Y-AXIS LABELS */}
                 <div className="flex flex-col justify-between text-[8px] font-mono text-slate-400 text-right ml-2 py-1 h-full">
                     <span>+{Math.round(stockChartData.maxY)}s</span>
                     <span>0s</span>
