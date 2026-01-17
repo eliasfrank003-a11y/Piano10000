@@ -17,7 +17,6 @@ const LEGACY_MILESTONES = [
   { hours: 400, date: new Date("2024-11-13"), avg: "1h 24m", type: 'legacy' },
 ];
 
-// --- HELPERS (v54 Improved Logic) ---
 function formatDecimalToHMS(decimalHours) {
   const totalSeconds = Math.round(decimalHours * 3600);
   const h = Math.floor(totalSeconds / 3600);
@@ -40,7 +39,6 @@ function formatAvgTime(str) {
   match = str.match(/^(\d+):(\d+)$/);
   if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m`;
   
-  // v54: Enhanced Regex Support
   if (/^\d{5,6}$/.test(str)) {
      const s = parseInt(str.slice(-2), 10);
      const m = parseInt(str.slice(-4, -2), 10);
@@ -61,16 +59,14 @@ function formatYearsMonthsSincePlain(dateObj) {
   let months = now.getMonth() - dateObj.getMonth();
   if (now.getDate() < dateObj.getDate()) months -= 1;
   if (months < 0) { years -= 1; months += 12; }
-  // v54: Safety checks
   if (years < 0) years = 0;
   if (months < 0) months = 0;
   return { years, months, text: `${years} year ${months} month` };
 }
 
-// --- GOOGLE SYNC HELPERS (Bulletproof Version) ---
+// --- GOOGLE SYNC HELPERS ---
 async function fetchGoogleCalendarEvents(token) {
   try {
-    // 1. Fetch ALL calendars (handling pagination just in case)
     let allCalendars = [];
     let calPageToken = null;
     do {
@@ -83,22 +79,20 @@ async function fetchGoogleCalendarEvents(token) {
        calPageToken = data.nextPageToken;
     } while (calPageToken);
 
-    // 2. Try to find 'ATracker' with robust matching
+    // Try to find 'ATracker' with robust matching
     const targetName = 'atracker';
     let calendar = allCalendars.find(c => c.summary && c.summary.trim().toLowerCase() === targetName);
 
-    // 3. Fallback: Try "includes" (loose match) if exact match fails
+    // Fallback: Try "includes"
     if (!calendar) {
         calendar = allCalendars.find(c => c.summary && c.summary.toLowerCase().includes(targetName));
     }
 
-    // 4. If still not found, THROW ERROR WITH LIST OF WHAT WE FOUND
     if (!calendar) {
         const foundNames = allCalendars.map(c => c.summary).join(", ");
         throw new Error(`Calendar 'ATracker' not found. I found these calendars: ${foundNames}.`);
     }
 
-    // 5. Fetch Events from the found calendar
     let allEvents = [];
     let eventPageToken = null;
     do {
@@ -265,10 +259,10 @@ const Tracker = ({
     setSyncError(null);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
+      // UPDATED SCOPE: Use calendar.readonly to allow listing calendars
       provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
       
-      // *** THE FIX: Force Google to show the checkboxes again ***
-      // 'consent' forces the permissions screen. 
+      // Keep consent prompt to ensure checkboxes appear if permissions were lost
       provider.setCustomParameters({ 
         prompt: 'consent' 
       });
@@ -289,10 +283,8 @@ const Tracker = ({
       alert(`Success! Synced ${processedSessions.length} sessions.`);
       
     } catch (err) {
-      // Clean error message for display
       const msg = err.message.replace("Firebase: ", "").replace(/\(.*\)/, "");
       setSyncError(msg);
-      // If it's our custom error, showing it in alert is helpful
       if (msg.includes("I found these calendars")) {
           alert("Sync Failed:\n" + msg + "\n\nTip: Make sure you check all boxes in the Google permissions screen.");
       } else {
@@ -336,7 +328,6 @@ const Tracker = ({
           setIntervalMilestones(prev => ([...prev, { id: Date.now(), date: formState.date, hours: h, avg: formState.avg, description: formState.description || "" }]));
           if (onIntervalAdded) onIntervalAdded(String(h));
       } else if (modalType === 'CUSTOM') {
-          // v54: added dateCreated
           addCustomMilestone({ id: Date.now(), date: formState.date, hours: Number(formState.hours), title: formState.title, description: formState.description || "", dateCreated: Date.now() });
       }
       setIsModalOpen(false); 
@@ -379,7 +370,6 @@ const Tracker = ({
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
           <div className="flex gap-2">
-              {/* Sync Button */}
               <button onClick={handleGoogleSync} className="text-indigo-500 flex items-center justify-center bg-indigo-50 dark:bg-slate-800 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-colors" title="Sync ATracker">
                 {isSyncing ? <RefreshCw size={18} className="animate-spin"/> : <Calendar size={18}/>}
               </button>
@@ -537,33 +527,19 @@ const Tracker = ({
                    <button onClick={() => setIsModalOpen(false)} className="w-full mt-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
                  </>
                )}
-               {modalStep === 'FORM' && modalType !== 'EDIT_DESC' && (
+               {modalStep === 'FORM' && (
                  <>
-                   <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">{modalType === 'INTERVAL' ? '100h Milestone' : 'Custom Milestone'}</h3>
+                   <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">{modalType === 'INTERVAL' ? '100h Milestone' : (modalType === 'EDIT_DESC' ? 'Edit' : 'Custom Milestone')}</h3>
                    <div className="space-y-3">
-                     <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Date</label><input type="date" value={formState.date} onChange={e => setFormState({ ...formState, date: e.target.value })} className={inputClass} /></div>
-                     {modalType === 'INTERVAL' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Hours</label><input type="number" value={formState.hours} onChange={e => setFormState({ ...formState, hours: e.target.value })} className={inputClass} inputMode="numeric"/></div>}
-                     {modalType === 'INTERVAL' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Avg play time/day</label><input type="text" value={formState.avg} onChange={e => setFormState({ ...formState, avg: e.target.value })} className={inputClass} inputMode="numeric" placeholder="01:24:00" /></div>}
-                     {modalType === 'CUSTOM' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">At hours</label><input type="number" value={formState.hours} onChange={e => setFormState({ ...formState, hours: e.target.value })} className={inputClass} /></div>}
+                     {modalType !== 'EDIT_DESC' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Date</label><input type="date" value={formState.date} onChange={e => setFormState({ ...formState, date: e.target.value })} className={inputClass} /></div>}
+                     {modalType === 'INTERVAL' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Hours</label><input type="number" value={formState.hours} onChange={e => setFormState({ ...formState, hours: e.target.value })} className={inputClass} /></div>}
+                     {modalType === 'INTERVAL' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Avg</label><input type="text" value={formState.avg} onChange={e => setFormState({ ...formState, avg: e.target.value })} className={inputClass} /></div>}
                      {modalType === 'CUSTOM' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Name</label><input type="text" value={formState.title} onChange={e => setFormState({ ...formState, title: e.target.value })} className={inputClass} /></div>}
                      <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Description</label><textarea value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} className={`${inputClass} h-24`} /></div>
                      <div className="flex gap-2 pt-1">
-                       <button onClick={saveNewMilestone} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
-                       <button onClick={() => { setModalStep('CHOOSE'); setModalType(null); setEditingMilestone(null); }} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Back</button>
-                     </div>
-                   </div>
-                 </>
-               )}
-               {modalStep === 'FORM' && modalType === 'EDIT_DESC' && editingMilestone && (
-                 <>
-                   <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Edit Description</h3>
-                   <div className="text-xs text-slate-400 mb-4">{editingMilestone.title || `${editingMilestone.hours} Hours`}</div>
-                   <div className="space-y-3">
-                     <textarea value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} className={`${inputClass} h-28`} placeholder="Description..." />
-                     <div className="flex gap-2">
-                       <button onClick={saveEditDescription} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
-                       <button onClick={deleteEditingMilestone} className="px-4 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 py-3 rounded-xl text-sm font-bold"><Trash size={16}/></button>
-                       <button onClick={() => { setIsModalOpen(false); setEditingMilestone(null); }} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
+                       <button onClick={modalType === 'EDIT_DESC' ? saveEditDescription : saveNewMilestone} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
+                       {modalType === 'EDIT_DESC' && <button onClick={deleteEditingMilestone} className="px-3 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-xl"><Trash size={16}/></button>}
+                       <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
                      </div>
                    </div>
                  </>
