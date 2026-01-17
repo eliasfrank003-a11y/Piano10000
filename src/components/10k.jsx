@@ -57,7 +57,8 @@ async function fetchGoogleCalendarEvents(token) {
       headers: { Authorization: `Bearer ${token}` }
     });
     const listData = await listResponse.json();
-    const calendar = listData.items?.find(c => c.summary.toLowerCase() === 'atracker');
+    // UPDATED: Added .trim() to handle accidental spaces in calendar name
+    const calendar = listData.items?.find(c => c.summary.trim().toLowerCase() === 'atracker');
     if (!calendar) throw new Error("Calendar 'ATracker' not found. Please ensure a Google Calendar with this exact name exists.");
 
     let allEvents = [];
@@ -227,7 +228,8 @@ const Tracker = ({
     setSyncError(null);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
-      provider.addScope('https://www.googleapis.com/auth/calendar.events.readonly');
+      // UPDATED: Changed scope from 'calendar.events.readonly' to 'calendar.readonly' to allow listing calendars
+      provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
       const result = await firebase.auth().signInWithPopup(provider);
       const token = result.credential.accessToken;
       const events = await fetchGoogleCalendarEvents(token);
