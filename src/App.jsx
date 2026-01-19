@@ -6,7 +6,8 @@ import Practice from './components/Practice';
 import History from './components/History';
 import Leaderboard from './components/Leaderboard';
 import Settings from './components/Settings';
-import { Play, List, Crown, Clock, Music, Timer, RotateCw, ChevronDown, Plus, Divide } from 'lucide-react';
+import Portfolio from './components/Portfolio'; // <--- NEW IMPORT
+import { Play, List, Crown, Clock, Music, Timer, RotateCw, ChevronDown, TrendingUp } from 'lucide-react'; // <--- ADDED TrendingUp
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
 import 'firebase/compat/auth';
@@ -248,6 +249,7 @@ function App() {
   const cycleMode = () => {
     if (appMode === 'REPERTOIRE') setAppMode('10K');
     else if (appMode === '10K') setAppMode('REPS');
+    else if (appMode === 'REPS') setAppMode('PORTFOLIO'); // <--- Added Cycle
     else setAppMode('REPERTOIRE');
   };
 
@@ -255,11 +257,12 @@ function App() {
     <div className={`flex flex-col h-screen ${isDark ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'} font-sans overflow-hidden`} style={{ height: 'var(--app-height)' }}>
       {/* HEADER */}
       <div className={`p-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} border-b shadow-sm flex justify-between items-center shrink-0 z-10`}>
-         <button onClick={cycleMode} className="flex flex-col items-start justify-center h-10">
+         <button onClick={cycleMode} className="flex flex-col items-start justify-center h-10 w-full">
             <h1 className="text-lg font-bold flex items-center gap-2 active:opacity-50 transition-opacity">
                 {appMode === 'REPERTOIRE' && <><Music /> Repertoire <ChevronDown /></>}
                 {appMode === '10K' && <><Timer /> 10.000 Hours <ChevronDown /></>}
                 {appMode === 'REPS' && <><RotateCw /> Repetitions <ChevronDown /></>}
+                {appMode === 'PORTFOLIO' && <><TrendingUp /> Portfolio <ChevronDown /></>} 
             </h1>
          </button>
          {appMode === 'REPERTOIRE' && (
@@ -299,6 +302,7 @@ function App() {
           />
         )}
         {appMode === 'REPS' && <Repetitions repState={repState} setRepState={setRepState} />}
+        {appMode === 'PORTFOLIO' && <Portfolio isDark={isDark} />}
         {appMode === 'REPERTOIRE' && (
             <>
                 {view === 'PRACTICE' && <Practice currentPiece={currentPiece} pickPiece={pickPiece} stopSession={() => { setCurrentPiece(null); setSessionFilter(false); }} redListCount={pieces.filter(p => p.status === 'red' && p.type !== 'divider').length} />}
