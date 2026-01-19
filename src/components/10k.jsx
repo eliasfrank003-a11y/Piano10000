@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Plus, Info, Edit2, Trash, Crown, Star, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -144,6 +144,44 @@ const Tracker = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
   const syncAttemptRef = useRef(0);
+
+  const syncFromToken = async (token, attemptId) => {
+    const events = await fetchGoogleCalendarEvents(token);
+    const processedSessions = events.map(e => {
+      if (!e.start?.dateTime || !e.end?.dateTime) return null;
+      const start = new Date(e.start.dateTime);
+      const end = new Date(e.end.dateTime);
+      const durationHours = (end - start) / (1000 * 60 * 60);
+      return { id: start.getTime(), date: start, duration: durationHours };
+    }).filter(Boolean);
+    if (syncAttemptRef.current === attemptId) {
+      setExternalHistory(processedSessions);
+    }
+  };
+
+  useEffect(() => {
+    const attemptId = syncAttemptRef.current + 1;
+    syncAttemptRef.current = attemptId;
+    const handleRedirect = async () => {
+      try {
+        const result = await firebase.auth().getRedirectResult();
+        if (!result?.credential?.accessToken) return;
+        setIsSyncing(true);
+        setSyncError(null);
+        await syncFromToken(result.credential.accessToken, attemptId);
+      } catch (err) {
+        const msg = (err.message || "Redirect sign-in failed. Please try again.")
+          .replace("Firebase: ", "")
+          .replace(/\(.*\)/, "");
+        setSyncError(msg);
+      } finally {
+        if (syncAttemptRef.current === attemptId) {
+          setIsSyncing(false);
+        }
+      }
+    };
+    handleRedirect();
+  }, []);
   
   // --- STATS LOGIC ---
   const stats = useMemo(() => {
@@ -218,18 +256,7 @@ const Tracker = ({
         timeoutPromise
       ]);
       if (syncAttemptRef.current !== attemptId) return;
-      const token = result.credential.accessToken;
-      const events = await fetchGoogleCalendarEvents(token);
-      
-      const processedSessions = events.map(e => {
-        if (!e.start?.dateTime || !e.end?.dateTime) return null;
-        const start = new Date(e.start.dateTime);
-        const end = new Date(e.end.dateTime);
-        const durationHours = (end - start) / (1000 * 60 * 60);
-        return { id: start.getTime(), date: start, duration: durationHours };
-      }).filter(Boolean);
-      
-      setExternalHistory(processedSessions);
+      await syncFromToken(result.credential.accessToken, attemptId);
       // alert(`Success! Synced ${processedSessions.length} sessions.`); // Optional toast
       
     } catch (err) {
