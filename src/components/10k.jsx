@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Info, Edit2, Trash, Crown, Star, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
-import MomentumChart from './MomentumChart';
 
 // --- CONSTANTS ---
 const START_DATE = new Date("2024-02-01");
@@ -144,7 +143,6 @@ const Tracker = ({
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
-  const [graphRange, setGraphRange] = useState(7);
   
   // --- STATS LOGIC ---
   const stats = useMemo(() => {
@@ -201,6 +199,7 @@ const Tracker = ({
   }, [externalHistory]);
 
   const handleGoogleSync = async () => {
+    if (isSyncing) return;
     setIsSyncing(true);
     setSyncError(null);
     try {
@@ -229,7 +228,6 @@ const Tracker = ({
           msg = "Please enable the Google Calendar API in your Google Cloud Console.";
       }
       setSyncError(msg);
-      alert("Sync Failed:\n" + msg);
     } finally {
       setIsSyncing(false);
     }
@@ -317,7 +315,13 @@ const Tracker = ({
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Progress</h2>
           <div className="flex gap-2">
               {/* CLEAN SYNC BUTTON (No Background) */}
-              <button onClick={handleGoogleSync} className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors p-1" title="Sync ATracker">
+              <button
+                onClick={handleGoogleSync}
+                disabled={isSyncing}
+                aria-busy={isSyncing}
+                className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors p-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                title="Sync ATracker"
+              >
                 {isSyncing ? <RefreshCw size={18} className="animate-spin"/> : <Calendar size={18}/>}
               </button>
               {/* CLEAN PLUS BUTTON (Matched Style) */}
@@ -339,14 +343,6 @@ const Tracker = ({
         {syncError && <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1 leading-tight"><AlertCircle size={10} className="shrink-0"/> {syncError}</div>}
       </div>
 
-      {/* --- NEW MOMENTUM CHART (Imported) --- */}
-      <MomentumChart 
-        externalHistory={externalHistory} 
-        stats={stats} 
-        graphRange={graphRange} 
-        setGraphRange={setGraphRange} 
-      />
-      
       {/* --- STATS & TIMELINE --- */}
       {stats ? (
         <>
