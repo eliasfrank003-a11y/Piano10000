@@ -302,7 +302,13 @@ function App() {
           />
         )}
         {appMode === 'REPS' && <Repetitions repState={repState} setRepState={setRepState} />}
-        {appMode === 'PORTFOLIO' && <Portfolio isDark={isDark} />}
+        {appMode === 'PORTFOLIO' && (
+          <Portfolio
+            isDark={isDark}
+            externalHistory={externalHistory}
+            setExternalHistory={setExternalHistory}
+          />
+        )}
         {appMode === 'REPERTOIRE' && (
             <>
                 {view === 'PRACTICE' && <Practice currentPiece={currentPiece} pickPiece={pickPiece} stopSession={() => { setCurrentPiece(null); setSessionFilter(false); }} redListCount={pieces.filter(p => p.status === 'red' && p.type !== 'divider').length} />}

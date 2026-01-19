@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from 'recharts';
 import { Calendar, RefreshCw, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
 import { CSV_DATA } from '../data/initialData';
+import { fetchGoogleCalendarEvents } from '../utils/googleCalendar';
 
 // --- CONFIG ---
-const TARGET_CALENDAR_NAME = "ATracker";
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID_HERE"; // <--- PASTE YOUR CLIENT ID
-const GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY_HERE";     // <--- PASTE YOUR API KEY
-const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"];
-const SCOPES = "https://www.googleapis.com/auth/calendar.readonly";
-
 const TABS = ['1D', '7D', '30D', '1Y', 'MAX'];
 
 // Constants for the Legacy Data (Start Feb 1, 2024)
@@ -32,113 +29,82 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-export default function Portfolio({ isDark }) {
+export default function Portfolio({ isDark, externalHistory = [], setExternalHistory = () => {} }) {
   const [activeTab, setActiveTab] = useState('7D');
-  const [sessions, setSessions] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [gapiLoaded, setGapiLoaded] = useState(false);
-  const [user, setUser] = useState(null);
-  const isGoogleConfigured = GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID_HERE" && GOOGLE_API_KEY !== "YOUR_GOOGLE_API_KEY_HERE";
+  const syncAttemptRef = useRef(0);
 
-  // 1. Initialize Data from CSV
-  useEffect(() => {
-    const initial = CSV_DATA.map(d => ({
-      id: d.start,
-      start: new Date(d.start),
-      duration: d.duration, 
-      source: 'csv'
-    }));
-    setSessions(initial);
-  }, []);
+  const csvSessions = useMemo(() => CSV_DATA.map(d => ({
+    id: d.start,
+    start: new Date(d.start),
+    duration: d.duration,
+    source: 'csv'
+  })), []);
 
-  // 2. Google Auth Setup (Load script dynamically if not present)
-  useEffect(() => {
-    if (!isGoogleConfigured) return;
-    const initClient = () => {
-      window.gapi.client.init({
-        apiKey: GOOGLE_API_KEY,
-        clientId: GOOGLE_CLIENT_ID,
-        discoveryDocs: DISCOVERY_DOCS,
-        scope: SCOPES,
-      }).then(() => {
-        setGapiLoaded(true);
-        const authInstance = window.gapi.auth2.getAuthInstance();
-        setUser(authInstance.isSignedIn.get() ? authInstance.currentUser.get() : null);
-        authInstance.isSignedIn.listen(isSignedIn => {
-          setUser(isSignedIn ? authInstance.currentUser.get() : null);
-        });
-      });
-    };
+  const syncedSessions = useMemo(() => externalHistory
+    .filter(s => new Date(s.id) > BASE_LOG_DATE)
+    .map(s => ({
+      id: s.id,
+      start: new Date(s.id),
+      duration: s.duration * 3600,
+      source: 'google'
+    })), [externalHistory]);
 
-    if (!window.gapi) {
-        const script = document.createElement('script');
-        script.src = "https://apis.google.com/js/api.js";
-        script.onload = () => window.gapi.load('client:auth2', initClient);
-        document.body.appendChild(script);
-    } else {
-        window.gapi.load('client:auth2', initClient);
-    }
-  }, []);
+  const sessions = useMemo(() => [...csvSessions, ...syncedSessions].sort((a, b) => a.start - b.start), [csvSessions, syncedSessions]);
 
   const handleSync = async () => {
-    if (!isGoogleConfigured) {
-      alert("Google Calendar sync isn't configured yet.");
-      return;
-    }
-    if (!gapiLoaded) return;
-    if (!user) {
-      window.gapi.auth2.getAuthInstance().signIn();
-      return;
-    }
-
+    if (isSyncing) return;
+    const attemptId = syncAttemptRef.current + 1;
+    syncAttemptRef.current = attemptId;
     setIsSyncing(true);
     try {
-      const calList = await window.gapi.client.calendar.calendarList.list();
-      const targetCal = calList.result.items.find(c => 
-        c.summary.toLowerCase() === TARGET_CALENDAR_NAME.toLowerCase()
-      );
-
-      if (!targetCal) {
-        alert(`Calendar "${TARGET_CALENDAR_NAME}" not found.`);
-        setIsSyncing(false);
-        return;
-      }
-
-      const now = new Date();
-      const syncStart = now < BASE_LOG_DATE ? LEGACY_START_DATE : BASE_LOG_DATE;
-
-      const events = await window.gapi.client.calendar.events.list({
-        calendarId: targetCal.id,
-        timeMin: syncStart.toISOString(),
-        showDeleted: false,
-        singleEvents: true,
-        orderBy: 'startTime'
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+      const timeoutMs = 20000;
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Sync timed out. Please try again.")), timeoutMs);
       });
-
-      const newSessions = events.result.items.map(e => {
-        if (!e.start.dateTime || !e.end.dateTime) return null;
+      const result = await Promise.race([
+        firebase.auth().signInWithPopup(provider),
+        timeoutPromise
+      ]);
+      if (syncAttemptRef.current !== attemptId) return;
+      const events = await fetchGoogleCalendarEvents(result.credential.accessToken, LEGACY_START_DATE);
+      const processedSessions = events.map(e => {
+        if (!e.start?.dateTime || !e.end?.dateTime) return null;
         const start = new Date(e.start.dateTime);
         const end = new Date(e.end.dateTime);
-        const duration = (end - start) / 1000;
-        return {
-          id: e.id,
-          start: start,
-          duration: duration,
-          source: 'google'
-        };
+        const durationHours = (end - start) / (1000 * 60 * 60);
+        return { id: start.getTime(), date: start, duration: durationHours };
       }).filter(Boolean);
-
-      setSessions(prev => {
-        const existingIds = new Set(prev.map(p => p.start.getTime()));
-        const uniqueNew = newSessions.filter(n => !existingIds.has(n.start.getTime()));
-        return [...prev, ...uniqueNew].sort((a, b) => a.start - b.start);
-      });
-
+      if (syncAttemptRef.current === attemptId) {
+        setExternalHistory(processedSessions);
+      }
     } catch (error) {
-      console.error("Sync Error", error);
-      alert("Failed to sync. Check console.");
+      let msg = error.message || "Sync failed. Please try again.";
+      if (msg.includes("popup-blocked")) {
+        try {
+          const provider = new firebase.auth.GoogleAuthProvider();
+          provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+          await firebase.auth().signInWithRedirect(provider);
+          return;
+        } catch (redirectError) {
+          msg = redirectError.message || "Popup blocked. Redirect failed. Please try again.";
+        }
+      } else if (msg.includes("popup-closed-by-user")) {
+        msg = "Popup closed before completing sign-in.";
+      } else if (msg.includes("auth/cancelled-popup-request")) {
+        msg = "Sign-in already in progress. Please try again.";
+      }
+      msg = msg.replace("Firebase: ", "").replace(/\(.*\)/, "");
+      if (msg.includes("Legacy People API")) {
+        msg = "Please enable the Google Calendar API in your Google Cloud Console.";
+      }
+      alert(msg);
     } finally {
-      setIsSyncing(false);
+      if (syncAttemptRef.current === attemptId) {
+        setIsSyncing(false);
+      }
     }
   };
 
