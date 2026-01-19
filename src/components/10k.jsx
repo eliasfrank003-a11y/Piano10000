@@ -23,7 +23,7 @@ function formatDecimalToHMS(decimalHours) {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = Math.round(totalSeconds % 60);
-  
+   
   if (h === 0) {
       if (m === 0) return `${s}s`;
       return `${m}m ${s}s`;
@@ -44,7 +44,7 @@ function formatAvgTime(str) {
   if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m ${parseInt(match[3])}s`;
   match = str.match(/^(\d+):(\d+)$/);
   if (match) return `${parseInt(match[1])}h ${parseInt(match[2])}m`;
-  
+   
   if (/^\d{5,6}$/.test(str)) {
      const s = parseInt(str.slice(-2), 10);
      const m = parseInt(str.slice(-4, -2), 10);
@@ -78,35 +78,45 @@ async function fetchGoogleCalendarEvents(token) {
     do {
        let calUrl = 'https://www.googleapis.com/calendar/v3/users/me/calendarList';
        if (calPageToken) calUrl += `?pageToken=${calPageToken}`;
-       const calRes = await fetch(calUrl, {
-          headers: { Authorization: `Bearer ${token}` }
-       });
-       const calData = await calRes.json();
-       allCalendars = allCalendars.concat(calData.items || []);
-       calPageToken = calData.nextPageToken;
+       
+       const response = await fetch(calUrl, { headers: { Authorization: `Bearer ${token}` } });
+       if (!response.ok) {
+           const errData = await response.json();
+           throw new Error(`Google API Error: ${errData.error?.message || response.statusText}`);
+       }
+
+       const data = await response.json();
+       if (data.items) allCalendars = allCalendars.concat(data.items);
+       calPageToken = data.nextPageToken;
     } while (calPageToken);
 
-    const targetName = "atracker";
+    const targetName = 'atracker';
     let calendar = allCalendars.find(c => c.summary && c.summary.trim().toLowerCase() === targetName);
     if (!calendar) {
         calendar = allCalendars.find(c => c.summary && c.summary.toLowerCase().includes(targetName));
     }
+
     if (!calendar) {
-      throw new Error("Calendar not found. Make sure you have a calendar called 'ATracker'.");
+        const foundNames = allCalendars.map(c => c.summary).join(", ");
+        throw new Error(`Calendar 'ATracker' not found. I found: ${foundNames || "(None)"}.`);
     }
 
     let allEvents = [];
-    let pageToken = null;
+    let eventPageToken = null;
     do {
       let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events?singleEvents=true&orderBy=startTime&timeMin=${START_DATE.toISOString()}&maxResults=2500`;
-      if (pageToken) url += `&pageToken=${pageToken}`;
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      allEvents = allEvents.concat(data.items || []);
-      pageToken = data.nextPageToken;
-    } while (pageToken);
+      if (eventPageToken) url += `&pageToken=${eventPageToken}`;
+      const eventsResponse = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      
+      if (!eventsResponse.ok) {
+           const errData = await eventsResponse.json();
+           throw new Error(`Events Fetch Error: ${errData.error?.message || eventsResponse.statusText}`);
+      }
+
+      const eventsData = await eventsResponse.json();
+      if (eventsData.items) allEvents = allEvents.concat(eventsData.items);
+      eventPageToken = eventsData.nextPageToken;
+    } while (eventPageToken);
     
     return allEvents;
   } catch (error) {
@@ -172,7 +182,7 @@ const Tracker = ({
     };
     handleRedirect();
   }, []);
-
+  
   // --- STATS LOGIC ---
   const stats = useMemo(() => {
     const newEvents = externalHistory.filter(s => new Date(s.id) > BASE_LOG_DATE);
@@ -400,3 +410,110 @@ const Tracker = ({
                 </div>
                 <span>Day {stats.daysPassed}</span>
             </div>
+          </div>
+
+          <div className="relative mt-6 pb-12">
+            <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-slate-200 dark:bg-slate-700 -translate-x-1/2 z-0"></div>
+            {/* Estimated Finish Card */}
+            <div className="relative z-10 mb-8 pl-16">
+              <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-50 dark:ring-slate-900"></div>
+              <div className="border border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-3 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <div><div className="text-xs font-bold uppercase tracking-wider text-slate-400">Estimated Finish</div><div className="text-lg font-bold text-slate-700 dark:text-slate-300">{stats.finishDate}</div></div>
+                <div className="text-right flex flex-col items-end justify-center gap-0.5"><div className="text-xs font-bold text-slate-500 dark:text-slate-400">REMAINING {stats.remainingFormatted}</div><div className="text-xs font-bold text-slate-500 dark:text-slate-400">TOTAL {stats.totalJourneyFormatted}</div></div>
+              </div>
+            </div>
+            {/* Next 1k Card */}
+            <div className="relative z-10 mb-8 pl-16">
+              <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-purple-400 ring-4 ring-purple-400/20 shadow-lg shadow-purple-400/50"></div>
+              <div className="bg-gradient-to-r from-purple-50 to-white dark:from-slate-800 dark:to-slate-800 border border-purple-200 dark:border-purple-900/30 rounded-xl p-4 shadow-sm">
+                <div className="flex justify-between items-center"><div><div className="text-purple-600 dark:text-purple-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Crown size={12}/> Next 1k</div><div className="text-xl font-bold text-slate-900 dark:text-white">{stats.next1k} Hours</div></div><div className="text-right"><div className="text-2xl font-bold text-purple-500">{stats.daysTo1k}</div><div className="text-[10px] text-slate-400 uppercase font-bold">{stats.next1kDateStr}</div></div></div>
+              </div>
+            </div>
+            {/* Next Milestone Card */}
+            <div className="relative z-10 mb-8 pl-16">
+              <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-yellow-400 ring-4 ring-yellow-400/20 shadow-lg shadow-yellow-400/50"></div>
+              <div className="bg-gradient-to-r from-yellow-50 to-white dark:from-slate-800 dark:to-slate-800 border border-yellow-200 dark:border-yellow-900/30 rounded-xl p-4 shadow-sm">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-yellow-600 dark:text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Star size={12}/> Next Goal</div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white">{stats.nextMilestone} Hours</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-yellow-500">{stats.daysToMilestone}</div>
+                    <div className="text-[10px] text-slate-400 uppercase font-bold">{stats.nextMilestoneDateStr}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Milestones Loop */}
+            {allMilestones.map((milestone, idx) => {
+              const isExpanded = expandedId === milestone.id;
+              return (
+                <div key={milestone.id || idx} onClick={() => toggleExpand(milestone.id)} className="relative z-10 mb-8 pl-16 cursor-pointer">
+                  <div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div>
+                  <div className="flex-1"><div className="flex justify-between items-baseline"><span className={`font-bold text-slate-700 dark:text-slate-300 ${milestone.type === 'custom' ? 'text-sm' : 'text-lg'}`}>{milestone.title}</span>{milestone.type === 'custom' ? <span className="text-xs text-slate-400">{milestone.hours} h</span> : <span className="text-xs text-slate-400">{milestone.avg}/day</span>}</div><div className="text-xs text-slate-400 mt-0.5">{milestone.date ? `${calculateDaysAgo(milestone.date)} days ago` : ''}</div>
+                    {isExpanded && (<div className="mt-3 text-sm text-slate-600 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700 pt-2 flex justify-between items-start animate-in fade-in"><div className="flex-1 mr-2 whitespace-pre-wrap">{milestone.description || <span className="text-slate-400 italic">No description...</span>}</div><button onClick={(e) => { e.stopPropagation(); openEdit(milestone); }} className="text-slate-400 hover:text-indigo-500 p-1"><Edit2 size={16}/></button></div>)}
+                  </div>
+                </div>
+              );
+            })}
+            {/* Journey Started */}
+            <div className="relative z-10 pl-16"><div className="absolute left-8 top-1/2 -translate-x-1/2 w-4 h-full bg-slate-50 dark:bg-slate-900 z-0"></div><div className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-slate-900 dark:bg-white border-2 border-slate-50 dark:border-slate-900 z-10"></div><div className="flex justify-between items-center"><div><div className="text-sm font-bold text-slate-900 dark:text-white">Journey Started</div><div className="text-xs text-slate-400">Feb 1, 2024</div></div><div className="text-xs text-slate-400">{journeyAge.text}</div></div></div>
+          </div>
+        </>
+      ) : ( <div className="text-center text-slate-400 mt-10 p-6 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">Enter your total hours above to generate your timeline.</div> )}
+      
+      {/* --- FORECAST MODAL --- */}
+      {isForecastOpen && forecastData && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
+           <div className="min-h-full flex items-center justify-center p-4">
+             <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
+               <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2"><Info size={16}/> Stats Forecast</h3>
+               <div className="space-y-4">
+                 <div><div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">To Increase Average</div><div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl overflow-hidden">{forecastData.effort.map((item, i) => (<div key={item.seconds} className={`flex justify-between items-center p-3 ${i !== 0 ? 'border-t border-slate-100 dark:border-slate-700' : ''}`}><span className="text-sm font-medium text-slate-600 dark:text-slate-300">+{item.seconds} sec</span><span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Play +{item.cost}</span></div>))}</div></div>
+                 <div><div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">If You Skip Today</div><div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl p-3 flex justify-between items-center"><span className="text-sm font-medium text-red-600 dark:text-red-400">Average Drops By</span><span className="text-sm font-bold text-red-600 dark:text-red-400">{forecastData.drop} sec</span></div></div>
+                 <button onClick={() => setIsForecastOpen(false)} className="w-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Close</button>
+               </div>
+             </div>
+           </div>
+        </div>
+      )}
+      
+      {/* --- ADD/EDIT MODAL --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50" style={{ height: 'var(--app-height)' }}>
+           <div className="min-h-full flex items-center justify-center p-4">
+             <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 relative">
+               {modalStep === 'CHOOSE' && (
+                 <>
+                   <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Add Milestone</h3>
+                   <div className="space-y-2"><button onClick={() => { setModalType('INTERVAL'); setModalStep('FORM'); setFormState({ date: new Date().toISOString().split('T')[0], hours: String(nextIntervalHours), avg: '', title: '', description: '' }); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-left"><div className="text-sm font-bold text-slate-900 dark:text-white">100h Milestone</div></button><button onClick={() => { setModalType('CUSTOM'); setModalStep('FORM'); setFormState({ date: new Date().toISOString().split('T')[0], hours: '', avg: '', title: '', description: '' }); }} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-left"><div className="text-sm font-bold text-slate-900 dark:text-white">Custom Milestone</div></button></div>
+                   <button onClick={() => setIsModalOpen(false)} className="w-full mt-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
+                 </>
+               )}
+               {modalStep === 'FORM' && (
+                 <>
+                   <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">{modalType === 'INTERVAL' ? '100h Milestone' : (modalType === 'EDIT_DESC' ? 'Edit' : 'Custom Milestone')}</h3>
+                   <div className="space-y-3">
+                     {modalType !== 'EDIT_DESC' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Date</label><input type="date" value={formState.date} onChange={e => setFormState({ ...formState, date: e.target.value })} className={inputClass} /></div>}
+                     {modalType === 'INTERVAL' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Hours</label><input type="number" value={formState.hours} onChange={e => setFormState({ ...formState, hours: e.target.value })} className={inputClass} /></div>}
+                     {modalType === 'INTERVAL' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Avg</label><input type="text" value={formState.avg} onChange={e => setFormState({ ...formState, avg: e.target.value })} className={inputClass} /></div>}
+                     {modalType === 'CUSTOM' && <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Name</label><input type="text" value={formState.title} onChange={e => setFormState({ ...formState, title: e.target.value })} className={inputClass} /></div>}
+                     <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Description</label><textarea value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} className={`${inputClass} h-24`} /></div>
+                     <div className="flex gap-2 pt-1">
+                       <button onClick={modalType === 'EDIT_DESC' ? saveEditDescription : saveNewMilestone} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold">Save</button>
+                       {modalType === 'EDIT_DESC' && <button onClick={deleteEditingMilestone} className="px-3 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-xl"><Trash size={16}/></button>}
+                       <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold">Cancel</button>
+                     </div>
+                   </div>
+                 </>
+               )}
+             </div>
+           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Tracker;
