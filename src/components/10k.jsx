@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Plus, Info, Edit2, Trash, Crown, Star, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -143,6 +143,7 @@ const Tracker = ({
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
+  const syncAttemptRef = useRef(0);
   
   // --- STATS LOGIC ---
   const stats = useMemo(() => {
@@ -200,14 +201,23 @@ const Tracker = ({
 
   const handleGoogleSync = async () => {
     if (isSyncing) return;
+    const attemptId = syncAttemptRef.current + 1;
+    syncAttemptRef.current = attemptId;
     setIsSyncing(true);
     setSyncError(null);
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+    // Removed prompt:'consent' to make re-sync smoother (optional: put it back if user gets stuck)
     try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
-      // Removed prompt:'consent' to make re-sync smoother (optional: put it back if user gets stuck)
-
-      const result = await firebase.auth().signInWithPopup(provider);
+      const timeoutMs = 20000;
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Sync timed out. Please try again.")), timeoutMs);
+      });
+      const result = await Promise.race([
+        firebase.auth().signInWithPopup(provider),
+        timeoutPromise
+      ]);
+      if (syncAttemptRef.current !== attemptId) return;
       const token = result.credential.accessToken;
       const events = await fetchGoogleCalendarEvents(token);
       
@@ -223,13 +233,28 @@ const Tracker = ({
       // alert(`Success! Synced ${processedSessions.length} sessions.`); // Optional toast
       
     } catch (err) {
-      let msg = err.message.replace("Firebase: ", "").replace(/\(.*\)/, "");
+      let msg = err.message || "Sync failed. Please try again.";
+      if (msg.includes("popup-blocked")) {
+        try {
+          await firebase.auth().signInWithRedirect(provider);
+          return;
+        } catch (redirectError) {
+          msg = redirectError.message || "Popup blocked. Redirect failed. Please try again.";
+        }
+      } else if (msg.includes("popup-closed-by-user")) {
+        msg = "Popup closed before completing sign-in.";
+      } else if (msg.includes("auth/cancelled-popup-request")) {
+        msg = "Sign-in already in progress. Please try again.";
+      }
+      msg = msg.replace("Firebase: ", "").replace(/\(.*\)/, "");
       if (msg.includes("Legacy People API")) {
           msg = "Please enable the Google Calendar API in your Google Cloud Console.";
       }
       setSyncError(msg);
     } finally {
-      setIsSyncing(false);
+      if (syncAttemptRef.current === attemptId) {
+        setIsSyncing(false);
+      }
     }
   };
 
