@@ -7,7 +7,7 @@ import { CSV_DATA } from '../data/initialData';
 import { fetchGoogleCalendarEvents } from '../utils/googleCalendar';
 
 // --- CONFIG ---
-const TABS = ['7D', '4W', '12M'];
+const TABS = ['7D', '4W'];
 
 // Constants for the Legacy Data (Start Feb 1, 2024)
 const LEGACY_START_DATE = new Date("2024-02-01");
@@ -29,8 +29,6 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-const formatMonth = (date) => date.toLocaleDateString('en-US', { month: 'short' });
-
 const formatSecondsOnly = (seconds) => `${Math.round(seconds)}s`;
 
 const formatMinutesSeconds = (seconds) => {
@@ -41,6 +39,18 @@ const formatMinutesSeconds = (seconds) => {
 };
 
 const DAY_MS = 1000 * 60 * 60 * 24;
+
+const formatDateKey = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateKey = (dateKey) => {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
 
 const getWeekNumber = (date) => {
   const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -143,17 +153,19 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
     const dayMap = new Map();
     let curr = new Date(firstDataDate);
     curr.setHours(0, 0, 0, 0);
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Ensure loop goes UP TO and INCLUDING today
     while (curr <= today) {
-      dayMap.set(curr.toISOString().split('T')[0], 0);
+      dayMap.set(formatDateKey(curr), 0);
       curr.setDate(curr.getDate() + 1);
     }
 
     // Populate play time from CSV/Google
     sorted.forEach(s => {
-      const dStr = s.start.toISOString().split('T')[0];
+      const dStr = formatDateKey(s.start);
       if (dayMap.has(dStr)) {
         dayMap.set(dStr, dayMap.get(dStr) + s.duration);
       }
@@ -164,13 +176,14 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
 
     for (const [dateStr, dailySeconds] of dayMap) {
       cumulativeSeconds += dailySeconds;
-      const dayDate = new Date(dateStr);
+      const dayDate = parseDateKey(dateStr);
       const daysElapsed = Math.floor((dayDate - LEGACY_START_DATE) / DAY_MS);
       if (daysElapsed <= 0) continue;
       const averageSoFar = cumulativeSeconds / daysElapsed;
 
       dataPoints.push({
         date: dateStr,
+        dateObj: dayDate,
         average: averageSoFar,
         dailyPlay: dailySeconds,
         formattedDate: formatDate(dateStr)
@@ -183,37 +196,42 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
   // 4. Filter by Tab
   const filteredData = useMemo(() => {
     if (chartData.length === 0) return [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    
+    // Define the absolute end of the current day to ensure "Today" is included in <= comparisons
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
 
     if (activeTab === '7D') {
-      const start = new Date(today);
-      start.setDate(today.getDate() - 6);
-      const startStr = start.toISOString().split('T')[0];
-      return chartData.filter(d => d.date >= startStr);
+      const start = new Date(startOfToday);
+      start.setDate(startOfToday.getDate() - 6);
+      return chartData.filter(d => d.dateObj >= start && d.dateObj <= endOfToday);
     }
 
     if (activeTab === '4W') {
-      const start = new Date(today);
-      start.setDate(today.getDate() - 27);
-      const rangeData = chartData.filter(d => {
-        const date = new Date(d.date);
-        return date >= start && date <= today;
-      });
+      const start = new Date(startOfToday);
+      start.setDate(startOfToday.getDate() - 27);
+      
+      const rangeData = chartData.filter(d => d.dateObj >= start && d.dateObj <= endOfToday);
+      
       return Array.from({ length: 4 }, (_, index) => {
         const bucketStart = new Date(start);
         bucketStart.setDate(start.getDate() + (index * 7));
         const bucketEnd = new Date(bucketStart);
         bucketEnd.setDate(bucketStart.getDate() + 6);
-        const bucketPoints = rangeData.filter(d => {
-          const date = new Date(d.date);
-          return date >= bucketStart && date <= bucketEnd;
-        });
+        // Ensure bucketEnd captures the full day if it is today
+        bucketEnd.setHours(23, 59, 59, 999);
+
+        const bucketPoints = rangeData.filter(d => d.dateObj >= bucketStart && d.dateObj <= bucketEnd);
         const average = bucketPoints.length ? bucketPoints[bucketPoints.length - 1].average : 0;
         const dailyPlay = bucketPoints.reduce((sum, point) => sum + point.dailyPlay, 0);
         const weekNumber = getWeekNumber(bucketStart);
+        
         return {
-          date: bucketStart.toISOString().split('T')[0],
+          date: formatDateKey(bucketStart),
+          dateObj: bucketStart,
           label: `Week ${weekNumber}`,
           average,
           dailyPlay,
@@ -221,33 +239,8 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
         };
       });
     }
-
-    const startMonth = new Date(today.getFullYear(), today.getMonth() - 11, 1);
-    const rangeData = chartData.filter(d => {
-      const date = new Date(d.date);
-      return date >= startMonth && date <= today;
-    });
-
-    const monthlyBuckets = [];
-    for (let i = 0; i < 12; i += 1) {
-      const bucketStart = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
-      const bucketEnd = new Date(bucketStart.getFullYear(), bucketStart.getMonth() + 1, 0);
-      const bucketPoints = rangeData.filter(d => {
-        const date = new Date(d.date);
-        return date >= bucketStart && date <= bucketEnd;
-      });
-      const average = bucketPoints.length ? bucketPoints[bucketPoints.length - 1].average : 0;
-      const dailyPlay = bucketPoints.reduce((sum, point) => sum + point.dailyPlay, 0);
-      const label = formatMonth(bucketStart);
-      monthlyBuckets.push({
-        date: bucketStart.toISOString().split('T')[0],
-        label,
-        average,
-        dailyPlay,
-        formattedDate: label
-      });
-    }
-    return monthlyBuckets;
+    
+    return chartData;
   }, [chartData, activeTab]);
 
   const startPrice = filteredData.length > 0 ? filteredData[0].average : 0;
