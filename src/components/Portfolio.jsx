@@ -7,7 +7,7 @@ import { CSV_DATA } from '../data/initialData';
 import { fetchGoogleCalendarEvents } from '../utils/googleCalendar';
 
 // --- CONFIG ---
-const TABS = ['1D', '7D', '30D', '1Y', 'MAX'];
+const TABS = ['7D', '4W', '12M'];
 
 // Constants for the Legacy Data (Start Feb 1, 2024)
 const LEGACY_START_DATE = new Date("2024-02-01");
@@ -27,6 +27,27 @@ const formatDuration = (seconds) => {
 const formatDate = (dateStr) => {
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+const formatMonth = (date) => date.toLocaleDateString('en-US', { month: 'short' });
+
+const formatSecondsOnly = (seconds) => `${Math.round(seconds)}s`;
+
+const formatMinutesSeconds = (seconds) => {
+  const totalSeconds = Math.round(seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  return `${minutes}m ${remainingSeconds}s`;
+};
+
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+const getWeekNumber = (date) => {
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNumber = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  return Math.ceil((((utcDate - yearStart) / DAY_MS) + 1) / 7);
 };
 
 export default function Portfolio({ isDark, externalHistory = [], setExternalHistory = () => {} }) {
@@ -113,19 +134,17 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
     if (sessions.length === 0) return [];
 
     const sorted = [...sessions].sort((a, b) => a.start - b.start);
-    const firstDataDate = sorted[0].start; // Dec 17, 2025
-    
-    // We calculate the average starting from the LEGACY DATE (Feb 1 2024)
-    // but we only Plot the chart from the CSV Start date (Dec 17 2025)
-    
-    const dayMs = 1000 * 60 * 60 * 24;
+    const firstDataDate = sorted[0].start;
 
-    // Fill days from CSV start to Today
+    const csvTotalSeconds = csvSessions.reduce((sum, session) => sum + session.duration, 0);
+    const baselineSeconds = Math.max(0, LEGACY_TOTAL_SECONDS - csvTotalSeconds);
+
+    // Fill days from CSV start to Today (includes today even if 0)
     const dayMap = new Map();
     let curr = new Date(firstDataDate);
-    curr.setHours(0,0,0,0);
+    curr.setHours(0, 0, 0, 0);
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
 
     while (curr <= today) {
       dayMap.set(curr.toISOString().split('T')[0], 0);
@@ -140,17 +159,16 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
       }
     });
 
-    let cumulativeSeconds = LEGACY_TOTAL_SECONDS;
-
+    let cumulativeSeconds = baselineSeconds;
     const dataPoints = [];
 
     for (const [dateStr, dailySeconds] of dayMap) {
       cumulativeSeconds += dailySeconds;
       const dayDate = new Date(dateStr);
-      const daysElapsed = Math.floor((dayDate - LEGACY_START_DATE) / dayMs);
+      const daysElapsed = Math.floor((dayDate - LEGACY_START_DATE) / DAY_MS);
       if (daysElapsed <= 0) continue;
       const averageSoFar = cumulativeSeconds / daysElapsed;
-      
+
       dataPoints.push({
         date: dateStr,
         average: averageSoFar,
@@ -160,24 +178,76 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
     }
 
     return dataPoints;
-  }, [sessions]);
+  }, [sessions, csvSessions]);
 
   // 4. Filter by Tab
   const filteredData = useMemo(() => {
     if (chartData.length === 0) return [];
-    const now = new Date();
-    let daysToSubtract = 0;
-    if (activeTab === '1D') daysToSubtract = 1;
-    if (activeTab === '7D') daysToSubtract = 7;
-    if (activeTab === '30D') daysToSubtract = 30;
-    if (activeTab === '1Y') daysToSubtract = 365;
-    if (activeTab === 'MAX') return chartData;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const cutoff = new Date();
-    cutoff.setDate(now.getDate() - daysToSubtract);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
-    
-    return chartData.filter(d => d.date >= cutoffStr);
+    if (activeTab === '7D') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 6);
+      const startStr = start.toISOString().split('T')[0];
+      return chartData.filter(d => d.date >= startStr);
+    }
+
+    if (activeTab === '4W') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 27);
+      const rangeData = chartData.filter(d => {
+        const date = new Date(d.date);
+        return date >= start && date <= today;
+      });
+      return Array.from({ length: 4 }, (_, index) => {
+        const bucketStart = new Date(start);
+        bucketStart.setDate(start.getDate() + (index * 7));
+        const bucketEnd = new Date(bucketStart);
+        bucketEnd.setDate(bucketStart.getDate() + 6);
+        const bucketPoints = rangeData.filter(d => {
+          const date = new Date(d.date);
+          return date >= bucketStart && date <= bucketEnd;
+        });
+        const average = bucketPoints.length ? bucketPoints[bucketPoints.length - 1].average : 0;
+        const dailyPlay = bucketPoints.reduce((sum, point) => sum + point.dailyPlay, 0);
+        const weekNumber = getWeekNumber(bucketStart);
+        return {
+          date: bucketStart.toISOString().split('T')[0],
+          label: `Week ${weekNumber}`,
+          average,
+          dailyPlay,
+          formattedDate: `Week ${weekNumber}`
+        };
+      });
+    }
+
+    const startMonth = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+    const rangeData = chartData.filter(d => {
+      const date = new Date(d.date);
+      return date >= startMonth && date <= today;
+    });
+
+    const monthlyBuckets = [];
+    for (let i = 0; i < 12; i += 1) {
+      const bucketStart = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
+      const bucketEnd = new Date(bucketStart.getFullYear(), bucketStart.getMonth() + 1, 0);
+      const bucketPoints = rangeData.filter(d => {
+        const date = new Date(d.date);
+        return date >= bucketStart && date <= bucketEnd;
+      });
+      const average = bucketPoints.length ? bucketPoints[bucketPoints.length - 1].average : 0;
+      const dailyPlay = bucketPoints.reduce((sum, point) => sum + point.dailyPlay, 0);
+      const label = formatMonth(bucketStart);
+      monthlyBuckets.push({
+        date: bucketStart.toISOString().split('T')[0],
+        label,
+        average,
+        dailyPlay,
+        formattedDate: label
+      });
+    }
+    return monthlyBuckets;
   }, [chartData, activeTab]);
 
   const startPrice = filteredData.length > 0 ? filteredData[0].average : 0;
@@ -188,7 +258,11 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
   const [hoverData, setHoverData] = useState(null);
   const displayPrice = hoverData ? hoverData.average : currentPrice;
   const displayDate = hoverData ? hoverData.formattedDate : "Current";
-  const changeDisplay = formatDuration(Math.abs(currentPrice - startPrice));
+  const changeDisplay = activeTab === '7D'
+    ? formatSecondsOnly(Math.abs(currentPrice - startPrice))
+    : formatMinutesSeconds(Math.abs(currentPrice - startPrice));
+
+  const xAxisKey = activeTab === '7D' ? 'date' : 'label';
 
   const yDomain = useMemo(() => {
     if (!filteredData.length) return ['auto', 'auto'];
@@ -238,8 +312,8 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
               horizontal={false}
             />
             <XAxis
-              dataKey="date"
-              tickFormatter={formatDate}
+              dataKey={xAxisKey}
+              tickFormatter={activeTab === '7D' ? formatDate : (value) => value}
               axisLine={false}
               tickLine={false}
               interval="preserveStartEnd"
