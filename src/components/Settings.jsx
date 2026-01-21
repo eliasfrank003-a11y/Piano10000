@@ -62,8 +62,17 @@ const Settings = ({ syncStatus, isFirebaseEnabled, syncId, setSyncId, handleLogo
         </button>
       </div>
 
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-6">
+        <div className="text-sm font-bold text-slate-900 dark:text-white">Version History</div>
+        <ul className="mt-2 space-y-2 text-xs text-slate-500 dark:text-slate-400">
+          <li>
+            <span className="font-bold text-slate-600 dark:text-slate-300">v64</span> • Standalone PWA tweaks, unified Portfolio metrics, and chart axis updates.
+          </li>
+        </ul>
+      </div>
+
       <div className="px-2 text-center text-xs text-slate-400">
-         Piano v52 (Modular)<br />Build: Latest
+         Piano v64 (Modular)<br />Build: Latest
       </div>
     </div>
   );
