@@ -248,8 +248,8 @@ function App() {
 
   const cycleMode = () => {
     if (appMode === 'REPERTOIRE') setAppMode('10K');
-    else if (appMode === '10K') setAppMode('REPS');
-    else if (appMode === 'REPS') setAppMode('PORTFOLIO'); // <--- Added Cycle
+    else if (appMode === '10K') setAppMode('PORTFOLIO');
+    else if (appMode === 'PORTFOLIO') setAppMode('REPS');
     else setAppMode('REPERTOIRE');
   };
 
@@ -271,7 +271,7 @@ function App() {
                 <button onClick={() => setView('LIST')} className={`p-3 rounded-full transition-colors ${view === 'LIST' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><List size={20} /></button>
                 <button onClick={() => setView('LEADERBOARD')} className={`p-3 rounded-full transition-colors ${view === 'LEADERBOARD' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Crown size={20} /></button>
                 <button onClick={() => setView('HISTORY')} className={`p-3 rounded-full transition-colors ${view === 'HISTORY' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : 'text-slate-400'}`}><Clock size={20} /></button>
-                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-400')}`}>v58</button>
+                <button onClick={() => setView('SETTINGS')} className={`px-3 py-1 ml-1 rounded-full text-xs font-bold transition-colors ${view === 'SETTINGS' ? (isDark ? 'bg-slate-600 text-white shadow' : 'bg-white shadow text-indigo-600') : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-400')}`}>v64</button>
              </div>
          )}
       </div>

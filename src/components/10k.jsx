@@ -3,12 +3,9 @@ import { Plus, Info, Edit2, Trash, Crown, Star, Calendar, RefreshCw, AlertCircle
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import { fetchGoogleCalendarEvents } from '../utils/googleCalendar';
+import { BASE_LOG_DATE, START_DATE, calculateTenKStats } from '../utils/tenKStats';
 
 // --- CONSTANTS ---
-const START_DATE = new Date("2024-02-01");
-const BASE_HOURS_LOGGED = 1015 + (46 / 60); 
-const BASE_LOG_DATE = new Date("2026-01-17");
-
 const LEGACY_MILESTONES = [
   { hours: 900, date: new Date("2025-11-08"), avg: "1h 24m", type: 'legacy' },
   { hours: 800, date: new Date("2025-08-18"), avg: "1h 25m", type: 'legacy' },
@@ -17,20 +14,6 @@ const LEGACY_MILESTONES = [
   { hours: 500, date: new Date("2024-12-31"), avg: "1h 29m", type: 'legacy' },
   { hours: 400, date: new Date("2024-11-13"), avg: "1h 24m", type: 'legacy' },
 ];
-
-// --- HELPERS ---
-function formatDecimalToHMS(decimalHours) {
-  const totalSeconds = Math.round(decimalHours * 3600);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = Math.round(totalSeconds % 60);
-   
-  if (h === 0) {
-      if (m === 0) return `${s}s`;
-      return `${m}m ${s}s`;
-  }
-  return `${h}h ${m}m ${s}s`;
-}
 
 function calculateDaysAgo(date) {
   const now = new Date();
@@ -131,19 +114,15 @@ const Tracker = ({
   
   // --- STATS LOGIC ---
   const stats = useMemo(() => {
-    const newEvents = externalHistory.filter(s => new Date(s.id) > BASE_LOG_DATE);
-    const newHours = newEvents.reduce((acc, s) => acc + s.duration, 0);
-    const totalPlayed = BASE_HOURS_LOGGED + newHours;
+    const baseStats = calculateTenKStats(externalHistory);
+    if (!baseStats) return null;
 
-    const now = new Date();
-    const timeDiff = now - START_DATE;
-    const daysPassed = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-    
-    if (daysPassed <= 0 || totalPlayed === 0) return null;
-
-    const avgHoursPerDay = totalPlayed / daysPassed;
+    const totalPlayed = baseStats.totalPlayedHours;
+    const daysPassed = baseStats.daysPassed;
+    const avgHoursPerDay = baseStats.avgHoursPerDay;
     const percentage = Math.min(100, (totalPlayed / 10000) * 100).toFixed(2);
-    
+    const now = new Date();
+
     const remainingHours = 10000 - totalPlayed;
     const daysRemaining = remainingHours / avgHoursPerDay;
     const finishDate = new Date();
@@ -168,7 +147,7 @@ const Tracker = ({
     return {
       totalPlayed,
       daysPassed,
-      avgDisplay: formatDecimalToHMS(avgHoursPerDay),
+      avgDisplay: baseStats.avgDisplay,
       avgNumeric: avgHoursPerDay,
       percentage,
       finishDate: finishDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
