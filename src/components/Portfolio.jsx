@@ -5,9 +5,10 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import { CSV_DATA } from '../data/initialData';
 import { fetchGoogleCalendarEvents } from '../utils/googleCalendar';
+import { calculateTenKStats } from '../utils/tenKStats';
 
 // --- CONFIG ---
-const TABS = ['7D', '4W'];
+const TABS = ['7D', '4W', '16W'];
 
 // Constants for the Legacy Data (Start Feb 1, 2024)
 const LEGACY_START_DATE = new Date("2024-02-01");
@@ -22,6 +23,14 @@ const formatDuration = (seconds) => {
   const s = Math.round(seconds % 60);
   if (h === 0) return `${m}m ${s}s`;
   return `${h}h ${m}m ${s}s`;
+};
+
+const formatAxisDuration = (seconds) => {
+  const totalSeconds = Math.round(seconds);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
 };
 
 const formatDate = (dateStr) => {
@@ -82,6 +91,7 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
     })), [externalHistory]);
 
   const sessions = useMemo(() => [...csvSessions, ...syncedSessions].sort((a, b) => a.start - b.start), [csvSessions, syncedSessions]);
+  const tenKStats = useMemo(() => calculateTenKStats(externalHistory), [externalHistory]);
 
   const handleSync = async () => {
     if (isSyncing) return;
@@ -179,7 +189,7 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
       const dayDate = parseDateKey(dateStr);
       const daysElapsed = Math.floor((dayDate - LEGACY_START_DATE) / DAY_MS);
       if (daysElapsed <= 0) continue;
-      const averageSoFar = cumulativeSeconds / daysElapsed;
+      const averageSoFar = Math.round(cumulativeSeconds / daysElapsed);
 
       dataPoints.push({
         date: dateStr,
@@ -239,17 +249,49 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
         };
       });
     }
+
+    if (activeTab === '16W') {
+      const start = new Date(startOfToday);
+      start.setDate(startOfToday.getDate() - 111);
+      
+      const rangeData = chartData.filter(d => d.dateObj >= start && d.dateObj <= endOfToday);
+      
+      return Array.from({ length: 16 }, (_, index) => {
+        const bucketStart = new Date(start);
+        bucketStart.setDate(start.getDate() + (index * 7));
+        const bucketEnd = new Date(bucketStart);
+        bucketEnd.setDate(bucketStart.getDate() + 6);
+        // Ensure bucketEnd captures the full day if it is today
+        bucketEnd.setHours(23, 59, 59, 999);
+
+        const bucketPoints = rangeData.filter(d => d.dateObj >= bucketStart && d.dateObj <= bucketEnd);
+        const average = bucketPoints.length ? bucketPoints[bucketPoints.length - 1].average : 0;
+        const dailyPlay = bucketPoints.reduce((sum, point) => sum + point.dailyPlay, 0);
+        const weekNumber = getWeekNumber(bucketStart);
+        
+        return {
+          date: formatDateKey(bucketStart),
+          dateObj: bucketStart,
+          label: `Week ${weekNumber}`,
+          average,
+          dailyPlay,
+          formattedDate: `Week ${weekNumber}`
+        };
+      });
+    }
     
     return chartData;
   }, [chartData, activeTab]);
 
   const startPrice = filteredData.length > 0 ? filteredData[0].average : 0;
   const currentPrice = filteredData.length > 0 ? filteredData[filteredData.length - 1].average : 0;
+  const currentAverageSeconds = tenKStats ? tenKStats.avgSeconds : currentPrice;
+  const totalProgressSeconds = tenKStats ? tenKStats.totalPlayedSeconds : null;
   const isProfit = currentPrice >= startPrice;
   const color = isProfit ? '#22c55e' : '#ef4444'; 
 
   const [hoverData, setHoverData] = useState(null);
-  const displayPrice = hoverData ? hoverData.average : currentPrice;
+  const displayPrice = hoverData ? hoverData.average : currentAverageSeconds;
   const displayDate = hoverData ? hoverData.formattedDate : "Current";
   const changeDisplay = activeTab === '7D'
     ? formatSecondsOnly(Math.abs(currentPrice - startPrice))
@@ -277,6 +319,11 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
              {formatDuration(displayPrice)}
              <span className="text-sm font-medium text-slate-500">avg/day</span>
           </div>
+          {totalProgressSeconds !== null && (
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Total Progress: {formatDuration(totalProgressSeconds)}
+            </div>
+          )}
           {!hoverData && (
             <div className={`mt-2 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-white/10 ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
                {isProfit ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>}
@@ -301,9 +348,17 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
             <CartesianGrid
               strokeDasharray="2 6"
               stroke={isDark ? 'rgba(148,163,184,0.25)' : 'rgba(148,163,184,0.35)'}
-              vertical
               horizontal={false}
+              vertical={false}
             />
+            {filteredData.map((point) => (
+              <ReferenceLine
+                key={`grid-${point[xAxisKey]}`}
+                x={point[xAxisKey]}
+                strokeDasharray="2 6"
+                stroke={isDark ? 'rgba(148,163,184,0.25)' : 'rgba(148,163,184,0.35)'}
+              />
+            ))}
             <XAxis
               dataKey={xAxisKey}
               tickFormatter={activeTab === '7D' ? formatDate : (value) => value}
@@ -313,7 +368,14 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
               tick={{ fontSize: 11, fill: isDark ? '#94a3b8' : '#64748b' }}
               padding={{ left: 8, right: 8 }}
             />
-            <YAxis domain={yDomain} hide />
+            <YAxis
+              domain={yDomain}
+              tickFormatter={formatAxisDuration}
+              axisLine={false}
+              tickLine={false}
+              width={56}
+              tick={{ fontSize: 11, fill: isDark ? '#94a3b8' : '#64748b' }}
+            />
             <defs>
               <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
@@ -361,7 +423,7 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${activeTab === tab ? (isDark ? 'bg-slate-700 text-white shadow' : 'bg-white text-indigo-600 shadow') : 'text-slate-500 hover:text-slate-400'}`}
             >
-              {tab}
+              {tab === '7D' ? '7 Days' : tab === '4W' ? '4 Weeks' : '16 Weeks'}
             </button>
           ))}
         </div>
