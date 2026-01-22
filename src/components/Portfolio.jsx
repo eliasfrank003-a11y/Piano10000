@@ -201,7 +201,7 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
     setIsSyncing(true);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
-      provider.addScope('[https://www.googleapis.com/auth/calendar.readonly](https://www.googleapis.com/auth/calendar.readonly)');
+      provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
       const timeoutMs = 20000;
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("Sync timed out. Please try again.")), timeoutMs);
