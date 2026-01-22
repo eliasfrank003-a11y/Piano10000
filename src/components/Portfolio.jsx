@@ -8,7 +8,7 @@ import { fetchGoogleCalendarEvents } from '../utils/googleCalendar';
 import { calculateTenKStats } from '../utils/tenKStats';
 
 // --- CONFIG ---
-const TABS = ['7D', '4W'];
+const TABS = ['7D', '4W', '16W'];
 
 // Constants for the Legacy Data (Start Feb 1, 2024)
 const LEGACY_START_DATE = new Date("2024-02-01");
@@ -249,6 +249,36 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
         };
       });
     }
+
+    if (activeTab === '16W') {
+      const start = new Date(startOfToday);
+      start.setDate(startOfToday.getDate() - 111);
+      
+      const rangeData = chartData.filter(d => d.dateObj >= start && d.dateObj <= endOfToday);
+      
+      return Array.from({ length: 16 }, (_, index) => {
+        const bucketStart = new Date(start);
+        bucketStart.setDate(start.getDate() + (index * 7));
+        const bucketEnd = new Date(bucketStart);
+        bucketEnd.setDate(bucketStart.getDate() + 6);
+        // Ensure bucketEnd captures the full day if it is today
+        bucketEnd.setHours(23, 59, 59, 999);
+
+        const bucketPoints = rangeData.filter(d => d.dateObj >= bucketStart && d.dateObj <= bucketEnd);
+        const average = bucketPoints.length ? bucketPoints[bucketPoints.length - 1].average : 0;
+        const dailyPlay = bucketPoints.reduce((sum, point) => sum + point.dailyPlay, 0);
+        const weekNumber = getWeekNumber(bucketStart);
+        
+        return {
+          date: formatDateKey(bucketStart),
+          dateObj: bucketStart,
+          label: `Week ${weekNumber}`,
+          average,
+          dailyPlay,
+          formattedDate: `Week ${weekNumber}`
+        };
+      });
+    }
     
     return chartData;
   }, [chartData, activeTab]);
@@ -393,7 +423,7 @@ export default function Portfolio({ isDark, externalHistory = [], setExternalHis
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${activeTab === tab ? (isDark ? 'bg-slate-700 text-white shadow' : 'bg-white text-indigo-600 shadow') : 'text-slate-500 hover:text-slate-400'}`}
             >
-              {tab}
+              {tab === '7D' ? '7 Days' : tab === '4W' ? '4 Weeks' : '16 Weeks'}
             </button>
           ))}
         </div>
